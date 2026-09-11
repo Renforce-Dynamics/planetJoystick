@@ -1,0 +1,23 @@
+# Default racket: mocap_tt planner baseline.
+
+id: default
+name: "mocap_tt default racket collision model (c_r=0.5)"
+calibration:
+  date: "mocap_tt_default"
+  source: ".reference/mocap_tt_tools/src/trajectory_predictor.cpp"
+  inputs:
+    - .reference/mocap_tt_tools/src/trajectory_predictor.cpp
+  notes: |
+    mocap_tt_tools::compute_racket_target_vel hard-codes c_r = 0.5 in:
+      speed = (n·v_out + 0.5 n·v_in) / (1.0 + 0.5)
+    Historical training value c_r=0.88 is preserved in training_legacy_088.yaml.
+
+ball_restitution: 0.50
+
+mjcf_hints:
+  # Stable at 0.25 ms contact substeps in the canonical movable-base scene.
+  # This is a MuJoCo contact calibration, not a replacement for the planner's
+  # measured/assumed ball_restitution above.
+  solref_racket: [0.005, 0.30]
+  solimp_racket: [0.97, 0.99, 0.001]
+  friction_racket: [0.08, 0.002, 0.0001, 0.0001, 0.0001]

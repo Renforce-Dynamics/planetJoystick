@@ -1,0 +1,38 @@
+# IceRibbon deterministic baseline: one fixed x-plane, no feasibility network.
+# Physics/estimator calibration remains shared with the site single-plane model.
+
+extends: rally_single_plane_iceribbon.yaml
+
+hit_planning:
+  reachability:
+    # The robot's left side is +Y in the canonical IceRibbon frame. Let the
+    # fixed x=0.40 plane cover slightly outside the +0.75 m table edge: the
+    # +0.50 m Base limit plus the validated +0.38 m backhand command reaches
+    # +0.88 m without enlarging the policy command envelope.
+    strike_reach_local_y_max: 0.90
+    reachable_y_max: 0.90
+
+  rule_lifecycle:
+    # Publish on the third consecutive valid candidate and lock Base/hand
+    # immediately. Only an observed new incoming ball unlocks them.
+    stable_plan_ticks: 3
+    outgoing_vx_threshold: 0.05
+    upstream_margin_m: 0.05
+    new_ball_x_jump_m: 0.50
+    base_target_ema_alpha: 0.40
+    base_target_ema_max_step_m: 0.08
+  base:
+    # Centers of the actual Strike training supports in rally_common.yaml.
+    # The base absorbs the forehand/backhand dead zone instead of moving the
+    # racket target outside either actor's training distribution.
+    fixed_stroke_anchor_rel_y:
+      forehand: -0.525
+      backhand: 0.025
+    base_target_y_max: 0.50
+    max_base_move_m: 0.50
+    center_selected_stroke: false
+    # Suppress centimetre-scale predictor jitter before the three-tick lock.
+    # The first target is compared with the measured base; later targets are
+    # compared with the previously published target.
+    target_deadband_x_m: 0.03
+    target_deadband_y_m: 0.05

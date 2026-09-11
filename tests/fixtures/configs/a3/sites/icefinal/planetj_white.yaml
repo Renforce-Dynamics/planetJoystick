@@ -1,0 +1,6 @@
+# IceFinal white robot operator target (THU_P2 / 192.168.120.122).
+extends: ../../../common/planetj_with_fast_rally.yaml
+
+target:
+  host: 192.168.120.122
+  port: 50560

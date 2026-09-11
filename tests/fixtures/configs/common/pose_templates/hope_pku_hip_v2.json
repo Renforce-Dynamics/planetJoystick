@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "name": "hope_pku_hip_v2",
+  "source": {
+    "url": "https://github.com/hitchopen/HOPE/tree/main/agibot/pku",
+    "coordinate_revision": "v2",
+    "points_frame": "pelvis_link",
+    "note": "PKU hip reflective-marker shell transformed from pelvis_link into the A3 imu_in_pelvis frame; source f1 X is the v2 value 0.09 m."
+  },
+  "frame": {
+    "name": "imu_in_pelvis",
+    "origin_in_pelvis_m": [0.00437, 0.0, -0.21165],
+    "axes": {
+      "x": "forward",
+      "y": "left",
+      "z": "up"
+    }
+  },
+  "marker_names": ["f1", "f2", "f3", "f4", "f5", "b1", "b2", "b3", "b4", "b5"],
+  "points_m": [
+    [0.08563, 0.0, 0.08165],
+    [0.07563, 0.05, 0.07165],
+    [0.07563, -0.05, 0.07165],
+    [0.07363, -0.03, 0.03165],
+    [0.07363, 0.03, 0.03165],
+    [-0.09437, 0.0, 0.11165],
+    [-0.08937, 0.055, 0.08165],
+    [-0.08937, -0.055, 0.08165],
+    [-0.08937, -0.03, 0.03165],
+    [-0.08937, 0.03, 0.03165]
+  ],
+  "orientation": {
+    "forward_axis": "+x",
+    "up_axis": "+z",
+    "forward_plane_markers": ["f2", "f3", "f4", "f5"],
+    "forward_plane_normal_sign": "away_from_all_marker_centroid"
+  }
+}

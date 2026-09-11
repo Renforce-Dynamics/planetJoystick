@@ -1,0 +1,7 @@
+# Final IceFinal End A white variant: Base 200 ms + table guard.
+extends: ../../entry_optitrack_onboard_end_a_feasi_batch.yaml
+transport_config: configs/a3/sites/icefinal/transport_onboard_blackbox_white.yaml
+
+planning:
+  rally:
+    config: configs/a3/sites/icefinal/planner/rally_feasi_batch_icefinal_base_table_guard.yaml

@@ -1,0 +1,17 @@
+# Shared IceFinal FeasiBatch base: field-selected timing and compute profile.
+extends: rally_feasi_batch.yaml
+
+depth_intercept:
+  use_quadratic_drag: true
+  integration_dt_s: 0.004
+
+feasi_batch:
+  trajectory:
+    step_s: 0.04
+  feasibility:
+    publish_joint_lcb_min: 0.85
+  selection:
+    preferred_initial_time_to_hit_s: 0.70
+  lifecycle:
+    base_lock_before_hit_s: 0.20
+    lock_before_hit_s: 0.10

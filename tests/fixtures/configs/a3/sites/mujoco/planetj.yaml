@@ -1,0 +1,6 @@
+# Sim2sim uses the common controls and only states its local destination.
+extends: ../../../common/planetj.yaml
+
+target:
+  host: 127.0.0.1
+  port: 50560

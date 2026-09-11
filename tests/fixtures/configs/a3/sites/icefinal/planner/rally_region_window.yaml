@@ -1,0 +1,186 @@
+# A3 rally RegionWindow planner.
+#
+# Clean production profile for trusted-region interception.  It does not
+# replace configs/a3/sites/icefinal/planner/rally.yaml or rally_depth_window.yaml.  Use it by
+# selecting:
+#
+#   planning.rally.strategy: region_window
+#   planning.rally.config: configs/a3/sites/icefinal/planner/rally_region_window.yaml
+#
+# Runtime cost is bounded: each tick evaluates at most the fixed x-plane, one
+# descending-z plane, and one post-apex time candidate.  There is no dense
+# search or iterative optimization path.
+
+extends: rally.yaml
+
+region_window:
+  enabled: true
+
+  # Candidate 1: legacy x=0.4, but only if strictly after first table bounce
+  # and strictly before the second on-table bounce when that bounce exists.
+  fixed_x_world: 0.40
+  window_epsilon_s: 0.003
+  max_predict_time_s: 2.0
+
+  # Candidate 2: descending crossing at a fixed base-relative z.
+  descending_rel_z_targets: [0.225]
+
+  # If the predicted second contact misses the table, replace the normal
+  # descending-z target with this low crossing.  Final command is still clipped
+  # to the selected trusted region.
+  no_second_bounce_rel_z_target: -0.12
+
+  # Candidate 3: fixed time after the post-first-bounce apex.
+  time_after_apex_s: 0.08
+
+  max_candidates: 3
+  trajectory_sample_dt_s: 0.01
+  infer_previous_bounce_max_age_s: 0.65
+
+  # Forward base motion is additionally clipped at:
+  # table_near_edge - robot_forward_extent - minimum_clearance.
+  # 0.63 - 0.35 - 0.08 = 0.20 m, so the trained +0.15 m limit remains active.
+  base_table_collision:
+    table_near_edge_x_world: 0.63
+    robot_forward_extent_m: 0.35
+    minimum_clearance_m: 0.08
+
+  # Tie-break only; region priority and exact feasibility dominate this.
+  continuity:
+    position_weight: 0.25
+    same_region_bonus: 0.05
+
+  # Once a valid command is this close to impact, keep its selected candidate,
+  # side, region, base target, racket target and velocity fixed.  Only the
+  # command countdown is refreshed from the committed absolute hit time.
+  commit:
+    freeze_selection_before_hit_s: 0.10
+
+  # Trusted strike command regions, relative to the commanded base.
+  # priority: lower is better.  R1 > R2 > R3.
+  regions:
+    - name: r1
+      priority: 1
+      forehand:
+        pos_x: [0.35, 0.50]
+        pos_y: [-0.65, -0.40]
+        pos_z: [-0.10, 0.55]
+        vel_x: [1.00, 3.50]
+        vel_y: [0.00, 1.00]
+        vel_z: [-1.00, 1.00]
+      backhand:
+        pos_x: [0.35, 0.50]
+        pos_y: [-0.30, 0.35]
+        pos_z: [-0.10, 0.65]
+        vel_x: [1.00, 3.50]
+        vel_y: [-1.00, 1.00]
+        vel_z: [-1.00, 1.00]
+        holes:
+          - y: [-0.30, -0.15]
+            z: [0.20, 0.65]
+
+    - name: r2
+      priority: 2
+      forehand:
+        pos_x: [0.50, 0.75]
+        pos_y: [-0.65, -0.40]
+        pos_z: [-0.05, 0.55]
+        vel_x: [1.00, 3.50]
+        vel_y: [0.00, 1.00]
+        vel_z: [-1.00, 1.00]
+      backhand:
+        pos_x: [0.50, 0.75]
+        pos_y: [-0.30, 0.35]
+        pos_z: [-0.05, 0.65]
+        vel_x: [1.00, 3.50]
+        vel_y: [-1.00, 0.00]
+        vel_z: [-1.00, 1.00]
+        holes:
+          - y: [-0.30, -0.15]
+            z: [0.20, 0.65]
+          - y: [-0.17, 0.09]
+            z: [0.23, 0.65]
+
+    - name: r3
+      priority: 3
+      forehand:
+        pos_x: [0.75, 0.90]
+        pos_y: [-0.65, -0.40]
+        pos_z: [-0.05, 0.35]
+        vel_x: [0.50, 1.50]
+        vel_y: [0.00, 1.00]
+        vel_z: [0.20, 1.00]
+      backhand:
+        pos_x: [0.75, 0.90]
+        pos_y: [-0.25, 0.35]
+        pos_z: [-0.05, 0.35]
+        vel_x: [0.50, 1.00]
+        vel_y: [-1.00, 0.50]
+        vel_z: [0.50, 1.00]
+
+hit_planning:
+  timing:
+    activate_before_hit_s: 1.20
+
+  # Do not hold a stale command across the second-bounce legality boundary.
+  decision:
+    mode: snap
+
+  reachability:
+    lateral_reachability_mode: target_base
+    strike_reach_local_y_min: -1.05
+    strike_reach_local_y_max: 0.75
+    strike_reach_z_min: -0.05
+    strike_reach_z_max: 0.75
+    reachable_y_min: -1.05
+    reachable_y_max: 0.75
+    reachable_z_min: -0.05
+    reachable_z_max: 0.75
+
+  base:
+    base_target_x_min: -0.15
+    base_target_x_max: 0.15
+    base_target_y_min: -0.50
+    base_target_y_max: 0.50
+    base_target_yaw_w_rad: 0.0
+    base_target_x_max_offset:
+    base_target_x_max_step:
+    base_target_y_max_offset:
+    base_target_y_max_step:
+
+  racket:
+    # Broad union used only as a fallback when no region is pinned.  Normal
+    # RegionWindow outputs are clipped by the selected R1/R2/R3 box.
+    forehand_racket_target_pose_range:
+      pos_x: [0.35, 0.90]
+      pos_y: [-0.65, -0.40]
+      pos_z: [-0.10, 0.55]
+      vel_x: [0.50, 3.50]
+      vel_y: [0.00, 1.00]
+      vel_z: [-1.00, 1.00]
+    backhand_racket_target_pose_range:
+      pos_x: [0.35, 0.90]
+      pos_y: [-0.30, 0.35]
+      pos_z: [-0.10, 0.65]
+      vel_x: [0.50, 3.50]
+      vel_y: [-1.00, 1.00]
+      vel_z: [-1.00, 1.00]
+    project_racket_target_position: true
+    project_racket_target_y: true
+    project_racket_target_z: true
+    racket_target_relative_to_target_base: true
+    pos_blend_min: 1.0
+    pos_blend_max: 1.0
+    vel_blend_min: 1.0
+    vel_blend_max: 1.0
+
+  smoothing:
+    ema:
+      # Keep event roots legal; continuity is handled in candidate ranking.
+      strike_alpha: 1.0
+      position_alpha: 1.0
+      racket_velocity_alpha: 1.0
+      time_alpha: 1.0
+      max_position_step_m:
+      max_racket_velocity_step_mps:
+      max_time_step_s:

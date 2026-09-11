@@ -1,0 +1,31 @@
+# AD201 white robot transport (192.168.120.122).
+version: 1
+
+runtime:
+  process_model: planner_process
+
+publisher:
+  session_id: auto
+  heartbeat_s: 0.05
+  max_frame_age_s: 0.08
+  ttl_ms: 80
+  future_tolerance_s: 0.005
+  shadow: false
+  socket_send_buffer_bytes: 262144
+
+channels:
+  rally:
+    enabled: true
+    host: 192.168.120.122
+    port: 50550
+
+debug:
+  enabled: true
+  transport: unix_dgram
+  endpoints: ["@planetd_p2"]
+  publish_hz: 50.0
+  queue_capacity: 1
+  prediction_max_points: 41
+  rigid_bodies:
+    - {name: robot-raw, source: entity, entity: THU_P2, axis_size_m: 0.20}
+    - {name: robot-imu, source: base, axis_size_m: 0.25}

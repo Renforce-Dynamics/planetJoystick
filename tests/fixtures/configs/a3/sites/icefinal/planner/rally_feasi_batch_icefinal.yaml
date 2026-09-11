@@ -1,0 +1,18 @@
+# IceFinal feasibility planner latency overlay.
+#
+# Keep the 1.20 s horizon but use a coarser time lattice to reduce CPU-side
+# candidate construction. The first valid plan prefers about 0.70 s of robot
+# preparation time. Refinements stop irreversibly when the absolute deadline
+# freezes the base at 0.20 s and the racket target at 0.10 s before impact.
+
+extends: rally_feasi_batch_icefinal_base.yaml
+
+feasi_batch:
+  contact:
+    # Reject low racket-center contacts only near/over the hitter-side table
+    # edge. Low picks remain legal after the racket has cleared the table.
+    min_world_z_m: 0.90
+    outside_table_clearance_m: 0.10
+  selection:
+    # Prefer robust returns; retain short aggressive flights only as fallback.
+    flight_time_preference_s: [0.55, 0.60, 0.50, 0.45, 0.40]

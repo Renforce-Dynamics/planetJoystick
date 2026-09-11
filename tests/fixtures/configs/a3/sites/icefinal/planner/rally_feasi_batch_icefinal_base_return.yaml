@@ -1,0 +1,6 @@
+# Final diagnostic variant: Base 200 ms + robust return-duration priority.
+extends: rally_feasi_batch_icefinal_base.yaml
+
+feasi_batch:
+  selection:
+    flight_time_preference_s: [0.55, 0.60, 0.50, 0.45, 0.40]

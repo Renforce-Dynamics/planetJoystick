@@ -1,0 +1,68 @@
+# Standalone PlanetD process configuration.
+version: 1
+
+# Must be one entry in debug.endpoints in configs/common/transport/local.yaml.
+endpoint: "@planetd"
+onboard_endpoint: "@planetd_onboard"
+application_id: planetd
+
+# PlanetD owns display geometry and never imports or instantiates a planner.
+scene:
+  x_min: 0.63
+  x_max: 3.37
+  y_min: -0.7625
+  y_max: 0.7625
+  z_surface: 0.76
+  net_x: 2.0
+  net_height: 0.1525
+  net_overhang: 0.1525
+
+visualization:
+  # Sliding source-time window. Points older than this are removed.
+  history_seconds: 3.0
+  history_sample_every_n: 3
+  history_point_radius_m: 0.008
+
+  # Planner trajectories are rendered point-for-point, without interpolation.
+  # Zero avoids showing stale planner output after a channel becomes invalid.
+  prediction_hold_frames: 0
+  prediction_point_radius_m: 0.012
+
+  # World-frame hit marker styling.
+  hit_point_radius_m: 0.065
+  hit_marker_half_size_m: 0.12
+
+  # Startup default for the native "Show labels" switch in the right-side
+  # properties panel of the 3D view. Labels remain available when this is off.
+  show_tag_labels: false
+
+# Components are registry names. Remove an item to unplug its logging and view.
+# Ordering controls component setup/render ordering; layout groups views by type.
+components:
+  enabled:
+    - world
+    - rally_plan
+    - rally_target
+    - metrics
+    - status
+    - onboard
+
+  world:
+    # Keep the default 3D view clean. Raw data remains available in DebugFrame.
+    show_raw_ball: false
+    show_ball_history: true
+    # Planet-PingPong explicitly selects and names every transmitted debug rigid body.
+    show_rigid_bodies: true
+
+  rally:
+    color: [60, 230, 110]
+    # Rally normally targets a fixed-X contact surface, so inspect Y/Z.
+    target_plane: yz
+    show_prediction_trajectory: true
+    show_landing_target: true
+    show_base_target: true
+    show_racket_command: true
+
+  # Each group becomes a tab instead of permanently occupying a narrow row.
+  metrics:
+    groups: [ball, errors, timing, transport]

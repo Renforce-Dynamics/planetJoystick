@@ -1,0 +1,7 @@
+# Final IceFinal End A blue variant: Base 200 ms + return priority.
+extends: ../../entry_optitrack_onboard_end_a_feasi_batch.yaml
+transport_config: configs/a3/sites/icefinal/transport_onboard_blackbox_blue.yaml
+
+planning:
+  rally:
+    config: configs/a3/sites/icefinal/planner/rally_feasi_batch_icefinal_base_return.yaml

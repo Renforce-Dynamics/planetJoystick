@@ -1,0 +1,15 @@
+# IceFinal plane-only feasibility deployment overlay.
+extends: rally_feasi_multiplane.yaml
+
+hit_planning:
+  # Time from racket contact to the configured landing point.  The longer
+  # flight gives the return a higher arc while preserving the landing target.
+  delta_t_flight: 0.60
+
+feasi_multiplane:
+  trajectory:
+    use_quadratic_drag: true
+    integration_dt_s: 0.004
+  feasibility:
+    publish_joint_lcb_min: 0.85
+  planes_world_x: [0.40, 0.50, 0.60]

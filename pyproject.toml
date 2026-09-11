@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "planetj"
+version = "0.1.0"
+requires-python = ">=3.10"
+description = "planetj: independent Cadence ecosystem component"
+dependencies = ["cadence-config>=0.1,<0.2", "planetj-protocol>=0.1,<0.2"]
+
+[project.scripts]
+planetj = "planetj.runtime:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["planetj*"]
+
+[tool.setuptools.package-data]
+"*" = ["**/*.yaml", "**/*.json", "**/*.xml", "**/*.STL", "**/*.stl", "**/*.onnx", "**/*.npz", "**/*.hex", "**/*.md", "**/*.lock", "**/LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

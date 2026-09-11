@@ -1,0 +1,58 @@
+# IceFinal A end with the CUDA feasibility batch planner.
+version: 1
+transport_config: configs/a3/sites/icefinal/transport_onboard_blackbox_white.yaml
+
+source:
+  kind: optitrack
+  site_config: configs/a3/sites/icefinal/optitrack/end_a/site.yaml
+  snapshot_queue_frames: 4096
+  raw_queue_frames: 64
+
+recording:
+  enabled: true
+  transport: planetr
+  endpoint: "@planetr"
+  queue_capacity: 16384
+  flush_interval_s: 0.5
+  trace_hz: 50.0
+
+perception:
+  ball:
+    source: role
+    queue_drain_mode: latest
+    estimator_timebase: sdk
+    use_estimator: true
+    estimator_min_samples: 12
+    estimator_sample_hz: 320.0
+    predict_hold_s: 0.10
+    bbox_xy_margin_m: 0.30
+    bbox_z_below_m: 0.05
+    bbox_z_above_m: 1.50
+    continuity_radius_m: 0.60
+    continuity_hold_s: 0.20
+    min_candidate_speed_m_s: 0.0
+
+  base:
+    enabled: true
+    required: true
+    role: robot_imu
+    use_quat: true
+    smoother:
+      passthrough: true
+      max_hold_frames: 0
+
+  racket:
+    enabled: false
+    role: racket
+    contact_pos_local_m: [0.0, 0.0, 0.0]
+    contact_quat_wxyz: [1.0, 0.0, 0.0, 0.0]
+    normal_axis_local: +y
+
+planning:
+  robot: a3
+  stale_perception_s: 0.10
+  target_yaw_w_rad: 0.0
+  rally:
+    enabled: true
+    strategy: feasi_batch
+    config: configs/a3/sites/icefinal/planner/rally_feasi_batch_icefinal.yaml

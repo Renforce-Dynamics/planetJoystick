@@ -1,0 +1,145 @@
+# A3 incoming-ball planner selection.
+#
+# The predictor implementation is the AnalyticPlanner ported from PingPongFSM.
+# Keep the A3 command geometry and safety shaping in rally_base.yaml; this
+# overlay only selects the same low-latency trajectory path used by the upstream
+# analytic planner/viewer and supplies the parameters that belong to that path.
+
+extends: ../../common/planner/rally.yaml
+
+planner_geometry:
+  # A3-uni's live-ball command contract uses x_hit=0.40 m with the pelvis at
+  # world x=0.  In the canonical table frame (origin x=2.0), that is -1.60.
+  # Keeping the crossing on this plane avoids projecting a 0.47 m target back
+  # into the trained 0.39..0.44 m command support.
+  hit_plane_table_x: -1.60
+
+policy_command:
+  # A3 Strike was trained with a per-stroke x interval, not HRLHit's fixed
+  # pelvis-relative x interval below.
+  racket_target_rel_x:
+
+trajectory_prediction:
+  type: analytic
+  # AnalyticPlanner consumes the velocity estimated by the perception pipeline.
+  use_ball_state_estimator: true
+  max_predict_time: 2.0
+
+hit_planning:
+  delta_t_flight: 0.50
+
+  timing:
+    activate_before_hit_s: 1.20
+    max_time_to_hit_s: 2.0
+    # Match the upstream planner's flow lifecycle across short estimator gaps.
+    command_hold_s: 0.45
+    strike_through_hold_s: 0.45
+    # WAIT_BALL may revise the stroke selected from distant/noisy predictions.
+    # On entering STRIKE, deployment locks stroke/base/yaw and accepts only
+    # same-stroke racket position, velocity and impact-time refinements.
+    lock_stroke_on_first_valid: false
+    # The A3 forehand/backhand command boxes are widely separated. Do not keep
+    # an earlier forehand merely because a later, clearly backhand prediction
+    # has not survived the inherited two-update debounce yet.
+    stroke_switch_hysteresis_m: 0.0
+    stroke_switch_confirm_ticks: 1
+
+  inactive_command:
+    time_s: 1.20
+
+  reachability:
+    # This is the broad physical incoming-ball window, not the much smaller
+    # IMU-relative command support used to train the actor. Keep the physical
+    # gate relaxed; the final actor target is projected into the exact
+    # forehand/backhand boxes below.
+    # WideHit sampling support from 12321.jpg. The source Z range is
+    # [-0.20, 0.30] relative to pelvis. With nominal imu_in_pelvis world
+    # z=0.85674, pelvis z=1.06839 and table z=0.76, this becomes table-frame
+    # z=[0.10839, 0.60839], i.e. world z=[0.86839, 1.36839].
+    # The deployed lower edge currently carries a 20 cm margin relative to
+    # that source range; the top is unchanged. This is table-frame
+    # z=[-0.09161, 0.60839], i.e. world z=[0.66839, 1.36839].
+    strike_reach_local_y_min: -1.05
+    strike_reach_local_y_max: 0.75
+    strike_reach_z_min: -0.09161
+    strike_reach_z_max: 0.60839
+    reachable_y_min: -1.05
+    reachable_y_max: 0.75
+    reachable_z_min: -0.09161
+    reachable_z_max: 0.60839
+    # Apply the same fixed planner-frame Y bounds drawn by the yellow plane.
+    # Base motion must not move this outer accept/reject window.
+    lateral_reachability_mode: planner_frame
+
+  stroke:
+    # Current Strike training intervals, relative to the policy pelvis/base.
+    forehand_y_range: [-0.65, -0.40]
+    backhand_y_range: [-0.30, 0.35]
+    # The analytic hit point is the command target. Do not hide execution
+    # compensation in planner geometry; calibrate root/racket frames instead.
+    forehand_pos_offset: [0.0, 0.0, 0.0]
+    backhand_pos_offset: [0.0, 0.0, 0.0]
+    # Exact racket collision axes used by the A3 Strike training rewards.
+    forehand_axis: "x"
+    backhand_axis: "-x"
+
+  base:
+    # Movable-base training support in world XY. Keep yaw fixed. The planner
+    # uses this workspace first to absorb an out-of-box racket position, then
+    # clips any residual racket target to the selected stroke box below.
+    base_target_x_min: -0.15
+    base_target_x_max: 0.15
+    base_target_y_min: -0.40
+    base_target_y_max: 0.40
+    base_target_yaw_w_rad: 0.0
+    # The absolute training box is the command guard for this robot. Do not
+    # further restrict it relative to the measured/previous base pose.
+    base_target_x_max_offset:
+    base_target_x_max_step:
+    base_target_y_max_offset:
+    base_target_y_max_step:
+
+  racket:
+    # Current Strike training support, relative to the commanded pelvis/base.
+    forehand_racket_target_pose_range:
+      pos_x: [0.35, 0.50]
+      pos_y: [-0.65, -0.40]
+      pos_z: [-0.10, 0.55]
+      vel_x: [0.80, 2.30]
+      vel_y: [-1.00, 1.00]
+      vel_z: [-1.00, 1.00]
+    backhand_racket_target_pose_range:
+      pos_x: [0.35, 0.50]
+      pos_y: [-0.30, 0.35]
+      pos_z: [-0.10, 0.65]
+      vel_x: [0.80, 3.00]
+      vel_y: [-1.00, 1.00]
+      vel_z: [-1.00, 1.00]
+    project_racket_target_position: true
+    project_racket_target_y: true
+    project_racket_target_z: true
+    # First account for the permitted base target, then project any residual.
+    racket_target_relative_to_target_base: true
+    # Do not mix a random reference target into the live A3 hit target.
+    pos_blend_min: 1.0
+    pos_blend_max: 1.0
+    vel_blend_min: 1.0
+    vel_blend_max: 1.0
+    # 2026-08-10 onboard calibration: backhand returns remained too strong at
+    # 0.58. Keep forehand on the equipment default (0.50) and raise only the
+    # backhand inverse-model restitution to further reduce its command.
+    backhand_racket_restitution: 0.65
+    # Apply this after velocity scaling/direction shaping, then run the existing
+    # final component clip. Thus FH vx gains 0.2 m/s where headroom exists and
+    # remains capped at the calibrated 2.30 m/s maximum.
+    command_velocity_adjustment:
+      forehand:
+        x_offset_mps: 0.20
+      backhand:
+        x_offset_mps: 0.0
+
+  smoothing:
+    ema:
+      # Countdown comes directly from the analytic crossing prediction.
+      time_alpha: 1.0
+      max_time_step_s:

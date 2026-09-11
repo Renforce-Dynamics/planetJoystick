@@ -1,0 +1,16 @@
+# AD201 P1 / End A recorder. The blue robot must forward A3DB to UDP 50571.
+version: 1
+
+onboard:
+  bind_host: 0.0.0.0
+  port: 50571
+
+planner:
+  endpoint: "@planetr_p1"
+
+planetd:
+  onboard_endpoint: "@planetd_p1_onboard"
+
+recording:
+  directory: recordings/ad201/p1
+  flush_interval_s: 0.5

@@ -1,0 +1,36 @@
+# Run this profile on agi-hdu. Linux routes 10.42.10.12 through the
+# HDU Ethernet interface; no interface address needs to be hard-coded here.
+version: 1
+
+ingress:
+  bind_host: 0.0.0.0
+  allowed_source_hosts: [192.168.31.4]
+
+target:
+  host: 10.42.10.12
+
+routes:
+  planet_pingpong:
+    port: 50550
+    magic: PLNU
+    packet_size: 108
+    delivery: latest
+    # Set outbound_bind_host here only if the HDU route to the MDU is ambiguous.
+  planetj:
+    port: 50560
+    magic: PLNJ
+    packet_size: 72
+    delivery: latest
+  record:
+    # Reverse path: black-box MDU -> agi-hdu -> PlanetR on the control PC.
+    port: 50570
+    target_host: 192.168.31.4
+    allowed_source_hosts: [10.42.10.12]
+    magic: A3DB
+    min_packet_size: 36
+    delivery: all
+
+runtime:
+  receive_buffer_bytes: 262144
+  send_buffer_bytes: 262144
+  report_interval_s: 1.0

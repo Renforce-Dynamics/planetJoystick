@@ -1,0 +1,33 @@
+# IceFinal deterministic single-plane command overlay, aligned with the
+# field-proven ``sin1`` tag while retaining the current site-local inheritance.
+
+extends: rally.yaml
+
+hit_planning:
+  delta_t_flight: 0.50
+
+  racket:
+    # ``sin1`` used a conservative 3 cm extension around each nominal lateral
+    # actor box to reduce projection after the early Base/hand commitment.
+    forehand_racket_target_pose_range:
+      pos_y: [-0.68, -0.37]
+    backhand_racket_target_pose_range:
+      pos_y: [-0.33, 0.38]
+    # Preserve the exact collision inverse and post-solve velocity adjustment
+    # used by the tagged single-plane baseline.
+    forehand_racket_restitution: 0.50
+    backhand_racket_restitution: 0.65
+    command_velocity_adjustment:
+      forehand:
+        x_offset_mps: 0.20
+      backhand:
+        x_offset_mps: 0.0
+  smoothing:
+    ema:
+      strike_alpha: 1.0
+      position_alpha: 0.40
+      racket_velocity_alpha: 1.0
+      time_alpha: 1.0
+      max_position_step_m: 0.06
+      max_racket_velocity_step_mps:
+      max_time_step_s:

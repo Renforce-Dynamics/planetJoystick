@@ -1,0 +1,89 @@
+# IceFinal network-free exact multi-plane planner.
+#
+# Region boxes and holes are inherited from RegionWindow. Every strike remains
+# on one configured world-X plane; continuous Base motion only changes the
+# ball contact position relative to the commanded Base.
+extends: rally_region_window.yaml
+
+region_multiplane:
+  # Incoming motion is toward decreasing X. Selection strictly prefers the
+  # latest legal plane: 0.40 > 0.50 > 0.60. Thus 0.40 naturally degenerates
+  # to the tested single-plane behavior; 0.50/0.60 only avoid a later
+  # second-table-contact boundary. The difficult 0.70 execution is excluded.
+  planes_world_x: [0.40, 0.50, 0.60]
+
+  trajectory:
+    min_time_to_hit_s: 0.08
+    max_time_to_hit_s: 1.20
+    activate_before_hit_s: 1.20
+    max_predict_time_s: 2.0
+    window_epsilon_s: 0.003
+    trajectory_sample_dt_s: 0.01
+    infer_previous_bounce_max_age_s: 0.65
+    use_quadratic_drag: true
+    integration_dt_s: 0.004
+
+  # Continuous analytic Base target: no grid and no arrival-time model.
+  base:
+    x_bounds_world: [0.0, 0.20]
+    y_bounds_world: [-0.50, 0.50]
+    # Independent axis limits: a 0.20 m forward move may be combined with the
+    # full 0.50 m lateral move (there is no circular total-distance cap).
+    max_forward_move_m: 0.20
+    max_lateral_move_m: 0.50
+    max_relative_forward_x_m: 0.50
+
+  contact_position_offsets:
+    forehand: [0.0, 0.0, 0.0]
+    backhand: [0.0, 0.0, 0.0]
+  contact:
+    min_closing_speed_mps: 0.20
+    # The current Strike actor is unreliable below this absolute height.
+    # Earlier X planes may rescue the ball; otherwise reject it explicitly.
+    min_world_z_m: 0.90
+
+  selection:
+    preferred_time_to_hit_s: 0.70
+    # This is the tested single-plane contact location, not the arithmetic
+    # midpoint (0.425) of the broad R1 box.
+    preferred_relative_x_m: 0.40
+
+  lifecycle:
+    stable_plan_ticks: 3
+    hold_last_valid_on_failure: true
+    outgoing_vx_threshold: 0.05
+    upstream_margin_m: 0.05
+    new_ball_x_jump_m: 0.50
+
+hit_planning:
+  # Restore the previously tested Final-A landing-flight contract.
+  delta_t_flight: 0.50
+  decision:
+    mode: snap
+  racket:
+    # The planner publishes the exact analytic plane command. No hidden
+    # projection or empirical velocity offset is applied afterward.
+    project_racket_target_position: false
+    project_racket_target_y: false
+    project_racket_target_z: false
+    pos_blend_min: 1.0
+    pos_blend_max: 1.0
+    vel_blend_min: 1.0
+    vel_blend_max: 1.0
+    command_velocity_adjustment:
+      forehand:
+        x_offset_mps: 0.0
+      backhand:
+        x_offset_mps: 0.0
+  smoothing:
+    ema:
+      strike_alpha: 1.0
+      position_alpha: 1.0
+      racket_velocity_alpha: 1.0
+      time_alpha: 1.0
+      max_position_step_m:
+      max_racket_velocity_step_mps:
+      max_time_step_s:
+
+deploy:
+  landing_prepare_enabled: false

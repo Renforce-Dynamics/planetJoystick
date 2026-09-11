@@ -1,0 +1,97 @@
+# Post-bounce plane-only feasibility planner.
+# A single value in planes_world_x is the exact single-plane special case.
+extends: rally.yaml
+
+feasi_multiplane:
+  checkpoint: assets/a3/planner/feasibility_v2/static_dual_expert.ckpt
+  # The field runtime provisions CUDA PyTorch and warms the compact network at
+  # startup.  On the RTX 3070 this primarily improves planner tail latency.
+  device: cuda
+  warmup_on_startup: true
+  inference_batch_size: 32768
+
+  # Exact world-X planes only: no dense time scan and no Z-crossing fallback.
+  planes_world_x: [0.40, 0.45, 0.50, 0.55, 0.60]
+
+  trajectory:
+    # The legal window starts strictly after the first hitter-side table bounce
+    # and ends before the second on-table bounce or prediction horizon.
+    min_time_to_hit_s: 0.08
+    max_time_to_hit_s: 1.20
+    activate_before_hit_s: 1.20
+    max_predict_time_s: 2.0
+    window_epsilon_s: 0.003
+    trajectory_sample_dt_s: 0.01
+    infer_previous_bounce_max_age_s: 0.65
+    use_quadratic_drag: false
+    integration_dt_s: 0.005
+
+  base_grid:
+    x_bounds_world: [0.0, 0.15]
+    x_step_m: 0.05
+    y_bounds_world: [-0.50, 0.50]
+    y_step_m: 0.05
+
+  # Base motion has no arrival-time model. The policy may move immediately;
+  # only reject a single target displacement larger than this radius.
+  base_motion:
+    max_move_m: 0.50
+
+  # Explicitly clean ball-contact mapping. No hidden per-hand target shift.
+  contact_position_offsets:
+    forehand: [0.0, 0.0, 0.0]
+    backhand: [0.0, 0.0, 0.0]
+  contact:
+    min_closing_speed_mps: 0.20
+
+  # Never sample or search racket velocity. Every plane state uses the
+  # inherited single-plane landing target and delta_t_flight, then applies the
+  # exact per-hand contact inverse used by feasibility batch.
+
+  feasibility:
+    publish_joint_lcb_min: 0.90
+
+  selection:
+    preferred_initial_time_to_hit_s: 0.70
+
+  lifecycle:
+    hold_last_valid_on_failure: true
+    base_lock_before_hit_s: 0.35
+    lock_before_hit_s: 0.15
+
+  # This stage rejects/holds whole evaluated candidates; it never smooths or
+  # clips a command after feasibility inference.
+  publish_filter:
+    max_command_delta:
+    max_deadline_delta_s:
+
+hit_planning:
+  decision:
+    mode: snap
+  racket:
+    project_racket_target_position: false
+    project_racket_target_y: false
+    project_racket_target_z: false
+    pos_blend_min: 1.0
+    pos_blend_max: 1.0
+    vel_blend_min: 1.0
+    vel_blend_max: 1.0
+    # Commands are evaluated and published exactly; do not inherit the normal
+    # single-plane forehand execution adjustment.
+    command_velocity_adjustment:
+      forehand:
+        x_offset_mps: 0.0
+      backhand:
+        x_offset_mps: 0.0
+  smoothing:
+    ema:
+      strike_alpha: 1.0
+      position_alpha: 1.0
+      racket_velocity_alpha: 1.0
+      time_alpha: 1.0
+      max_position_step_m:
+      max_racket_velocity_step_mps:
+      max_time_step_s:
+
+deploy:
+  landing_prepare_enabled: false

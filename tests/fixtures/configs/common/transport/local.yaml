@@ -1,0 +1,41 @@
+version: 1
+
+runtime:
+  # Work runtime uses one process with independent worker threads.
+  process_model: planner_process
+
+publisher:
+  # "auto" creates one process-level session id for the rally channel.
+  session_id: auto
+  heartbeat_s: 0.05
+  max_frame_age_s: 0.08
+  ttl_ms: 80
+  future_tolerance_s: 0.005
+  shadow: false
+  socket_send_buffer_bytes: 262144
+
+channels:
+  rally:
+    enabled: true
+    host: 127.0.0.1
+    port: 50550
+
+debug:
+  # Best-effort local visualization is a separate fault domain from control.
+  enabled: true
+  transport: unix_dgram
+  # Linux abstract Unix datagram; no stale socket file remains after a crash.
+  # Fan out the same aligned DebugFrame to the standalone PlanetD and the
+  # embedded agi3dep MuJoCo overlay. Missing consumers are best-effort drops.
+  endpoints: ["@planetd", "@agi3dep_sim"]
+  publish_hz: 30.0
+  queue_capacity: 1
+  # Maximum predictor-produced points carried in each DebugFrame.
+  prediction_max_points: 41
+  rigid_bodies:
+    - name: robot-shifted
+      source: base
+      axis_size_m: 0.25
+    - name: robot-racket-shifted
+      source: racket
+      axis_size_m: 0.16

@@ -1,0 +1,36 @@
+# IceFinal B end: aligned IceRibbon calibration + THU_P2 rigid-to-IMU pose.
+version: 1
+site:
+  name: icefinal_end_b
+
+message_source:
+  kind: optitrack
+  calibration_data: site_optitrack.json
+  pose_data: pose_optitrack.json
+  connection:
+    server_ip: 192.168.50.1
+    local_ip: 192.168.50.12
+    command_port: 1510
+    data_port: 1511
+    multicast_address: 239.255.42.99
+    use_multicast: true
+    connect_timeout_s: 3.0
+    socket_timeout_s: 0.10
+    # Multicast always uses Motive's native bitstream; IceFinal currently
+    # advertises NatNet 4.5, so keep the direct depacketizer contract explicit.
+    requested_version: [4, 5, 0, 0]
+
+mocap:
+  max_stale_s: 0.10
+  sentinel_threshold: 1.0e+6
+  entities:
+    Ball: {kind: rigid_body, role: ball_rigid, id: 5}
+    # Confirmed live on 2026-08-20: THU_P2 id=3, Ball id=5; table ID not assigned.
+    THU_P2: {kind: rigid_body, role: robot_imu, id: 3}
+  transform:
+    scale_m_per_unit: 1.0
+  ball_observer:
+    primary_source: ball_rigid
+    fallback_source: null
+    fd_vel_max_dt_s: 0.20
+    fd_vel_alpha: 0.40

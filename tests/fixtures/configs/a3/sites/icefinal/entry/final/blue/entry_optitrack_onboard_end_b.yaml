@@ -1,0 +1,3 @@
+# Final IceFinal End B entry for the blue robot.
+extends: ../../entry_optitrack_onboard_end_b_feasi_batch.yaml
+transport_config: configs/a3/sites/icefinal/transport_onboard_blackbox_blue.yaml

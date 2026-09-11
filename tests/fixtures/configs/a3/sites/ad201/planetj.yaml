@@ -1,0 +1,2 @@
+# Default AD201 operator target: blue robot.
+extends: planetj_blue.yaml

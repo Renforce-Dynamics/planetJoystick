@@ -1,0 +1,64 @@
+# G1 real/Nokov Rally planner with the verified Coordina FastStrike command
+# support. This is the single G1 work profile; calibrated physics and command
+# overrides live together so the active configuration has one short inheritance
+# edge instead of a chain of historical A/B profiles.
+
+extends: ../../common/planner/rally.yaml
+
+ball: assets/equipment/balls/nokov_ball_drop_001.yaml
+
+planner_geometry:
+  # Marker-derived real racket contact plane: world x ~= 0.47.
+  policy_contact_plane_table_x: -1.53
+
+policy_command:
+  racket_target_rel_x:
+
+trajectory_prediction:
+  use_ball_state_estimator: true
+  drag_k: 0.0
+
+table:
+  # Raw Nokov marker rebound plane and calibrated restitution.
+  ball_center_bounce_z: 0.762
+  restitution_h: 0.75
+  restitution_v: 0.778
+
+hit_planning:
+  smoothing:
+    ema:
+      position_alpha: 1.0
+      racket_velocity_alpha: 1.0
+      max_position_step_m:
+      max_racket_velocity_step_mps:
+
+  base:
+    center_selected_stroke: true
+    base_target_y_max_offset: 0.08
+    base_target_y_max_step: 0.025
+
+  racket:
+    forehand_racket_restitution: 0.55
+    backhand_racket_restitution: 0.40
+    # Bound each 50 Hz active update relative to the last latched target.
+    # Static box projection alone can jump between opposite boundaries.
+    active_target_max_position_step_m: 0.015
+    forehand_racket_target_pose_range:
+      pos_x: [0.34475, 0.38475]
+      pos_y: [-0.58, -0.49]
+      pos_z: [0.21339, 0.28339]
+      vel_x: [1.35, 1.75]
+      vel_y: [-0.70, 0.70]
+      vel_z: [-0.20, 0.70]
+    backhand_racket_target_pose_range:
+      pos_x: [0.34475, 0.39475]
+      pos_y: [0.08, 0.16]
+      pos_z: [0.32339, 0.39339]
+      vel_x: [1.35, 1.75]
+      vel_y: [-0.70, 0.70]
+      vel_z: [-0.20, 0.70]
+    # G1's narrow policy support is intentional: after the outer reachability
+    # gate, project all racket-position axes into the trained command boxes.
+    project_racket_target_position: true
+    project_racket_target_y: true
+    project_racket_target_z: true

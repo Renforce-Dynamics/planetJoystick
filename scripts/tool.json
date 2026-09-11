@@ -1,0 +1,12 @@
+{
+  "module": "planetj",
+  "doctor": [
+    "-m",
+    "planetj",
+    "--check"
+  ],
+  "run": [
+    "-m",
+    "planetj"
+  ]
+}

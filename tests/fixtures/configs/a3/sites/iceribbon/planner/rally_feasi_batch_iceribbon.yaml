@@ -1,0 +1,35 @@
+# IceRibbon feasibility planner latency overlay.
+#
+# Keep the 1.20 s horizon but use a coarser time lattice to reduce CPU-side
+# candidate construction. The first valid plan prefers about 0.70 s of robot
+# preparation time. Refinements stop irreversibly when the absolute deadline
+# freezes the base at 0.35 s and the racket target at 0.15 s before impact.
+
+extends: rally_feasi_batch.yaml
+
+trajectory_prediction:
+  # Effective online parameters fitted from rigid Ball records on 2026-08-19.
+  fit_window: 31
+  drag_k: 0.15
+
+table:
+  restitution_h: 0.90
+  restitution_v: 0.92
+
+depth_intercept:
+  use_quadratic_drag: true
+  integration_dt_s: 0.004
+
+feasi_batch:
+  trajectory:
+    step_s: 0.04
+  feasibility:
+    # IceRibbon favors finding a usable strike over the generic conservative
+    # gate. Keep the learned support/error gates unchanged.
+    publish_joint_lcb_min: 0.85
+  selection:
+    preferred_initial_time_to_hit_s: 0.70
+  lifecycle:
+    # Keep locomotion stable while allowing late racket correction.
+    base_lock_before_hit_s: 0.35
+    lock_before_hit_s: 0.15

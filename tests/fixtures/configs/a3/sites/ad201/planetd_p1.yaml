@@ -1,0 +1,41 @@
+# AD201 P1 / End A standalone diagnostics.
+version: 1
+endpoint: "@planetd_p1"
+onboard_endpoint: "@planetd_p1_onboard"
+application_id: planetd-ad201-p1
+
+scene:
+  x_min: 0.63
+  x_max: 3.37
+  y_min: -0.7625
+  y_max: 0.7625
+  z_surface: 0.76
+  net_x: 2.0
+  net_height: 0.1525
+  net_overhang: 0.1525
+
+visualization:
+  history_seconds: 3.0
+  history_sample_every_n: 3
+  history_point_radius_m: 0.008
+  prediction_hold_frames: 0
+  prediction_point_radius_m: 0.012
+  hit_point_radius_m: 0.065
+  hit_marker_half_size_m: 0.12
+  show_tag_labels: false
+
+components:
+  enabled: [world, rally_plan, rally_target, metrics, status, onboard]
+  world:
+    show_raw_ball: false
+    show_ball_history: true
+    show_rigid_bodies: true
+  rally:
+    color: [40, 120, 255]
+    target_plane: yz
+    show_prediction_trajectory: true
+    show_landing_target: true
+    show_base_target: true
+    show_racket_command: true
+  metrics:
+    groups: [ball, errors, timing, transport]

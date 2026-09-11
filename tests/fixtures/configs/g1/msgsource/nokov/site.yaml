@@ -1,0 +1,64 @@
+# G1 Nokov XINGYING work config.
+#
+# Coordinate frames:
+#   mocap  : raw Nokov stream, millimetres.
+#            X = LEFT (robot's view), Y = up, Z = forward (toward opponent).
+#            Origin = robot-side table edge centre, at table-top height.
+#            (Empirically verified 2026-05-23: when the pingpong cluster is
+#            physically on the robot's RIGHT, mocap reports X < 0. The
+#            previously documented "X = right" convention was wrong.)
+#   mujoco : output of this package — MuJoCo world frame, metres.
+#            X = forward (toward opponent), Y = left, Z = up.
+#            Origin = floor under robot spawn point (matches
+#            assets/g1_description/g1_scene_table_tennis_movable.xml).
+#
+# The rotation below implements the basis change mocap → mujoco:
+#     mujoco_x = +z_mocap * 1e-3   (forward → forward)
+#     mujoco_y = +x_mocap * 1e-3   (left → +left)
+#     mujoco_z = +y_mocap * 1e-3   (up → up)
+#
+# `translation_m` is added in MuJoCo frame AFTER rotation+scale. Calibrate
+# it once with the Planet-PingPong Nokov calibration workflow, which aligns the captured
+# Table centre with the MuJoCo table body at (2.0, 0.0, 0.755).
+
+server_ip: 10.1.1.198
+max_stale_s: 0.10
+sentinel_threshold: 1.0e+6  # any |coord| >= this is treated as a lost marker
+
+entities:
+  # 4 MarkerSets, 3 RigidBodies seen on-site on 2026-05-23:
+  robot_base:   { kind: rigid_body,  role: robot_pelvis, id: 1 }
+  # Resolve by the exact XINGYING descriptor name; add an explicit id here
+  # only after scripts/probe.py confirms it on the G1 site.
+  racket_h:     { kind: rigid_body,  role: racket }
+  # pingpong:     { kind: rigid_body,  role: ball_rigid,   id: 0 }
+  # Table is used only for calibration. Auto-calibrate prefers the Table
+  # marker-set centroid (by name), so this entity is declared as marker_set.
+  # Table:        { kind: marker_set,  role: table_corners }
+  # SinglePoint0: { kind: marker_set,  role: ball_single  }
+
+transform:
+  scale_m_per_unit: 0.001
+  rotation_matrix_3x3:
+    - [ 0,  0,  1]
+    - [ 1,  0,  0]
+    - [ 0,  1,  0]
+  # Calibrated 2026-05-23 against MuJoCo g1_scene_table_tennis_movable.xml
+  # (table top surface at 2.0, 0.0, 0.760 = body z 0.755 + 5 mm half-thickness).
+  # AD201 A/B captures live under configs/a3/sites/ad201/nokov/end_{a,b}/.
+  # and the derivation. Re-run the Planet-PingPong calibration workflow to refresh.
+  # Y component flipped 2026-05-23 alongside the rotation row-2 sign flip
+  # (mocap X is robot's LEFT, not right).
+  translation_m: [0.6405, 0.012, 0.7287]
+
+ball_observer:
+  # 2026-05-23: no real ping-pong ball deployed yet; SinglePoint0 is
+  # permanently LOST. Pin the ball role to the 8-marker `pingpong`
+  # calibration cluster and disable the fallback chain. When the real
+  # in-flight ball comes back, restore:
+  #     primary_source: ball_single
+  #     fallback_source: ball_rigid
+  primary_source: ball_rigid    # pingpong: 8-marker calibration cluster
+  fallback_source: null         # no fallback — fail fast if pingpong is lost
+  fd_vel_max_dt_s: 0.20
+  fd_vel_alpha: 0.40

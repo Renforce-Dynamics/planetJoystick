@@ -1,0 +1,21 @@
+# AD201/Nokov real-ball overlay for the deterministic feasibility batch planner.
+
+extends: rally_feasi_batch.yaml
+
+# The site drop calibration measured c_v=0.778. Keep the standard horizontal
+# restitution and drag model unchanged until rally data provides a clean fit.
+table:
+  restitution_v: 0.778
+
+# AD201 real-racket inverse contact model and policy execution adjustment.
+# Keep both hands explicit here: they have measurably different real execution
+# strength, so AD201 feasi-batch must not depend on inherited defaults.
+hit_planning:
+  racket:
+    forehand_racket_restitution: 0.50
+    backhand_racket_restitution: 0.65
+    command_velocity_adjustment:
+      forehand:
+        x_offset_mps: 0.20
+      backhand:
+        x_offset_mps: 0.00

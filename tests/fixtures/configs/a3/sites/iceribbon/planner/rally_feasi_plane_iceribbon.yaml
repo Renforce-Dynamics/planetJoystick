@@ -1,0 +1,5 @@
+# IceRibbon single-plane special case of FeasiMultiPlanePlanner.
+extends: rally_feasi_multiplane_iceribbon.yaml
+
+feasi_multiplane:
+  planes_world_x: [0.40]

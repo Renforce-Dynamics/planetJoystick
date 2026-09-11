@@ -1,0 +1,104 @@
+# A3 deterministic analytic-candidate feasibility batch planner.
+# Select with planning.rally.strategy: feasi_batch.
+
+extends: rally_depth_window.yaml
+
+feasi_batch:
+  # Static dual-hand v2 checkpoint produced by the training-only package.
+  checkpoint: assets/a3/planner/feasibility_v2/static_dual_expert.ckpt
+  # The larger candidate grid benefits from the field CUDA runtime. Warmup
+  # below keeps one-time CUDA initialization out of the planning loop.
+  device: cuda
+  warmup_on_startup: true
+  # The deployed grid produces at most 28,160 candidates at max_points=64,
+  # so one inference chunk remains sufficient without a 131k ceiling.
+  inference_batch_size: 32768
+
+  # Select once from the first usable predicted hit point relative to the
+  # current Base, then keep that hand for the complete incoming ball.
+  hand_selection:
+    # Evaluate both hands through every gate; the first accepted candidate
+    # chooses and locks the hand for this incoming ball.
+    mode: joint_feasible_then_lock
+
+  # Only these trajectory time ticks are candidates. No phase optimization or
+  # local refinement is permitted.
+  trajectory:
+    min_time_to_hit_s: 0.08
+    max_time_to_hit_s: 1.20
+    activate_before_hit_s: 1.20
+    step_s: 0.02
+    window_epsilon_s: 0.003
+    max_points: 64
+
+  # World-frame base targets are an exact inclusive lattice and the current
+  # temporary reachability clip. Every lattice point inside these bounds
+  # is considered reachable; base tracking is owned by the deployed policy.
+  # The current base pose is used only for deterministic minimum-motion
+  # selection after all command/physics/feasibility gates have passed.
+  base_grid:
+    # Backward (-X) targets are excluded: 0.00, 0.05, 0.10, 0.15 m.
+    x_bounds_world: [0.0, 0.15]
+    x_step_m: 0.05
+    # Y uses the same 5 cm resolution: -0.50, -0.45, ..., +0.45, +0.50 m.
+    y_bounds_world: [-0.50, 0.50]
+    y_step_m: 0.05
+
+  # Landing points are canonical table-frame XY. Each configured flight time
+  # produces one unique analytic outgoing velocity and racket command.
+  return:
+    # v_out is solved with constant gravity and no aerodynamic drag. Keep the
+    # model name explicit until a calibrated closed-form/lookup ABI replaces it.
+    flight_model: ballistic_no_drag_v1
+    landing_targets_table_xy:
+      - [0.685, 0.0]
+    flight_times_s: [0.40, 0.45, 0.50, 0.55, 0.60]
+    net_clearance_margin_m: 0.01
+    forward_landing_tolerance_m: 0.01
+    forward_outgoing_tolerance_mps: 0.000001
+
+  feasibility:
+    # Feasibility is a gate, never a ranking score.
+    publish_joint_lcb_min: 0.90
+
+  lifecycle:
+    hold_last_valid_on_failure: true
+    # Freeze locomotion first; keep accepting complete coupled racket candidates
+    # until the later full-plan lock. No post-feasibility EMA is configured.
+    base_lock_before_hit_s: 0.35
+    lock_before_hit_s: 0.15
+
+hit_planning:
+  delta_t_flight: 0.80
+
+  decision:
+    mode: snap
+  racket:
+    # Every selected command has already passed learned support and network gates.
+    project_racket_target_position: false
+    project_racket_target_y: false
+    project_racket_target_z: false
+    pos_blend_min: 1.0
+    pos_blend_max: 1.0
+    vel_blend_min: 1.0
+    vel_blend_max: 1.0
+
+    forehand_racket_restitution: 0.85
+    backhand_racket_restitution: 0.75
+    command_velocity_adjustment:
+      forehand:
+        x_offset_mps: 0.0
+      backhand:
+        x_offset_mps: 0.0
+  smoothing:
+    ema:
+      strike_alpha: 1.0
+      position_alpha: 1.0
+      racket_velocity_alpha: 1.0
+      time_alpha: 1.0
+      max_position_step_m:
+      max_racket_velocity_step_mps:
+      max_time_step_s:
+
+deploy:
+  landing_prepare_enabled: false

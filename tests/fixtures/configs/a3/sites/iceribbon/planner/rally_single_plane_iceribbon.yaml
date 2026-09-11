@@ -1,0 +1,30 @@
+# IceRibbon calibrated single-plane A/B-test overlay.
+#
+# Keep the same estimator/physics calibration as the current End B feasibility
+# entry while bypassing learned feasibility filtering.
+
+extends: rally.yaml
+
+trajectory_prediction:
+  type: analytic
+  use_ball_state_estimator: true
+  max_predict_time: 2.0
+  fit_window: 31
+  # Effective online parameters fitted from rigid Ball records on 2026-08-19.
+  # The fit evaluates the estimator state all the way to the x=0.40 m plane.
+  drag_k: 0.15
+
+table:
+  restitution_h: 0.90
+  restitution_v: 0.92
+
+hit_planning:
+  smoothing:
+    ema:
+      strike_alpha: 1.0
+      position_alpha: 0.40
+      racket_velocity_alpha: 1.0
+      time_alpha: 1.0
+      max_position_step_m: 0.06
+      max_racket_velocity_step_mps:
+      max_time_step_s:

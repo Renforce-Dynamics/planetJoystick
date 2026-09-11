@@ -1,0 +1,16 @@
+# AD201 P2 / End B recorder. The white robot must forward A3DB to UDP 50572.
+version: 1
+
+onboard:
+  bind_host: 0.0.0.0
+  port: 50572
+
+planner:
+  endpoint: "@planetr_p2"
+
+planetd:
+  onboard_endpoint: "@planetd_p2_onboard"
+
+recording:
+  directory: recordings/ad201/p2
+  flush_interval_s: 0.5

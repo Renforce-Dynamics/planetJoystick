@@ -1,0 +1,43 @@
+# Periodic fixed policy command; no ball prediction or feasibility inference.
+extends: rally.yaml
+
+fixed_hit:
+  # First command becomes active one second before t=3 s. Subsequent hit
+  # deadlines are exactly six seconds apart.
+  interval_s: 6.0
+  first_hit_delay_s: 3.0
+  command_lead_s: 1.0
+
+  # Keep the deployment base controller closed-loop on the calibrated center.
+  base_target_xy_world: [0.0, 0.0]
+  base_target_yaw_w_rad: 0.0
+
+  # Verified against the active feasibility_v2/static_dual_expert.ckpt for the
+  # strike_s78 deployment policy. One command is used per deadline, in order,
+  # then the sequence wraps around. Positions are root-relative and velocities
+  # use world-aligned policy axes.
+  commands:
+    - name: backhand_near
+      rel_racket_target_pos_w: [0.420603, 0.106890, 0.151576]
+      racket_target_vel_w: [2.276892, -0.340043, 0.442589]
+      is_forehand: false
+
+    - name: forehand_near
+      rel_racket_target_pos_w: [0.428118, -0.533473, 0.174552]
+      racket_target_vel_w: [2.025277, 0.078949, 0.313282]
+      is_forehand: true
+
+    - name: forehand_mid
+      rel_racket_target_pos_w: [0.612598, -0.538727, 0.193516]
+      racket_target_vel_w: [1.891826, 0.512940, 0.246085]
+      is_forehand: true
+
+    - name: backhand_far
+      rel_racket_target_pos_w: [0.790975, 0.068199, 0.209782]
+      racket_target_vel_w: [1.012375, -0.734268, 0.683069]
+      is_forehand: false
+
+    - name: forehand_far
+      rel_racket_target_pos_w: [0.789213, -0.493199, 0.191759]
+      racket_target_vel_w: [1.142321, 0.626639, 0.612482]
+      is_forehand: true

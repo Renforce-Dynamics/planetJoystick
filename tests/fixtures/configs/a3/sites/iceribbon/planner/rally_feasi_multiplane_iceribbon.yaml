@@ -1,0 +1,22 @@
+# IceRibbon calibrated trajectory overlay for plane-only feasibility planning.
+extends: rally_feasi_multiplane.yaml
+
+trajectory_prediction:
+  fit_window: 31
+  drag_k: 0.15
+
+hit_planning:
+  # Use the currently archived IceRibbon return-flight calibration.
+  delta_t_flight: 0.50
+
+table:
+  restitution_h: 0.90
+  restitution_v: 0.92
+
+feasi_multiplane:
+  trajectory:
+    use_quadratic_drag: true
+    integration_dt_s: 0.004
+  feasibility:
+    publish_joint_lcb_min: 0.85
+  planes_world_x: [0.40, 0.50, 0.60]

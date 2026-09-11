@@ -1,0 +1,64 @@
+# A3 mixed sim source: live Nokov ball + simulated A3 base -> RegionWindow Rally.
+version: 1
+transport_config: configs/common/transport/local.yaml
+
+source:
+  kind: mixed
+  live_source: nokov
+  site_config: configs/a3/sites/ad201/nokov/end_a/site.yaml
+  snapshot_queue_frames: 4096
+  raw_queue_frames: 8
+  sim_bind_host: 127.0.0.1
+  sim_port: 50600
+  sim_max_packet_age_s: 0.08
+
+recording:
+  enabled: false
+  directory: recordings
+  queue_capacity: 16384
+  flush_interval_s: 0.5
+
+perception:
+  ball:
+    source: raw
+    queue_drain_mode: latest
+    use_estimator: true
+    estimator_min_samples: 7
+    predict_hold_s: 0.10
+    bbox_xy_margin_m: 0.30
+    bbox_z_below_m: 0.05
+    bbox_z_above_m: 1.50
+    continuity_radius_m: 0.60
+    continuity_hold_s: 0.20
+    min_candidate_speed_m_s: 0.0
+
+  base:
+    enabled: true
+    required: true
+    role: robot_imu
+    use_quat: true
+    smoother:
+      alpha_pos: 1.0
+      alpha_vel: 1.0
+      alpha_quat: 1.0
+      min_warmup: 1
+      max_hold_frames: 0
+      max_jump_m: 1.0
+      max_speed_mps: 20.0
+      reacquire_after_rejects: 1
+
+  racket:
+    enabled: false
+    role: racket
+    contact_pos_local_m: [0.0, 0.0, 0.0]
+    contact_quat_wxyz: [1.0, 0.0, 0.0, 0.0]
+    normal_axis_local: +y
+
+planning:
+  robot: a3
+  stale_perception_s: 0.10
+  target_yaw_w_rad: 0.0
+  rally:
+    enabled: true
+    strategy: region_window
+    config: configs/a3/planner/rally_region_window.yaml

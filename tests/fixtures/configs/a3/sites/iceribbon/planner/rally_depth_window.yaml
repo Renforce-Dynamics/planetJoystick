@@ -1,0 +1,122 @@
+# A3 rally depth-window planner.
+#
+# Clean production profile for rally interception with depth.  It does not
+# replace configs/a3/sites/iceribbon/planner/rally.yaml.  Use it by selecting:
+#
+#   planning.rally.strategy: depth_window
+#   planning.rally.config: configs/a3/sites/iceribbon/planner/rally_depth_window.yaml
+#
+# The planner evaluates a bounded set of event-root candidates only:
+# old world x=0.4 first, then at most two descending-z alternatives.  It does
+# not scan dense samples, so runtime cost stays bounded as the ball approaches.
+
+extends: rally.yaml
+
+depth_intercept:
+  # Try the old world x=0.4 intercept first, but accept it only when it is
+  # strictly after the first table bounce and strictly before the second table
+  # bounce if that second bounce is predicted on-table.
+  fixed_x_world: 0.40
+  window_epsilon_s: 0.003
+  max_predict_time_s: 2.0
+
+  # Fallback candidates: descending crossings at base-relative z heights.
+  # Combined with fixed_x_world this gives at most three intercept candidates
+  # per planner tick.
+  descending_rel_z_targets: [0.225, 0.275]
+  max_candidates: 3
+  trajectory_sample_dt_s: 0.01
+
+  # If the ball will not have a second on-table bounce, allow one low
+  # descending-z fallback.  This is still checked against the training box
+  # before it can become a command.
+  no_second_bounce_rel_z_target: -0.12
+
+  # When the current observed state is already after the first hitter-side
+  # table bounce, the selector may infer the previous bounce only from a recent
+  # upward trajectory; it must not treat a pre-bounce descending parabola as
+  # already bounced.
+  infer_previous_bounce_max_age_s: 0.65
+
+  # Empirically good policy command ranges, relative to the commanded base.
+  # The selector first prefers candidates already inside these boxes without
+  # moving the base.  If not possible, it moves the base minimally and clips to
+  # the trained base range below.
+  good_ranges:
+    forehand:
+      pos_x: [0.35, 0.79]
+      pos_y: [-0.65, -0.40]
+      pos_z: [-0.10, 0.55]
+      vel_x: [0.80, 2.30]
+      vel_y: [-1.00, 1.00]
+      vel_z: [-1.00, 1.00]
+    backhand:
+      pos_x: [0.35, 0.68]
+      pos_y: [-0.30, 0.35]
+      pos_z: [-0.10, 0.65]
+      vel_x: [0.80, 3.50]
+      vel_y: [-1.00, 1.00]
+      vel_z: [-1.00, 1.00]
+
+  # Guard against moving the base forward into the table.  With the canonical
+  # table geometry this gives 0.63 - 0.35 - 0.08 = 0.20 m, so the trained
+  # +0.15 m base limit below remains the active bound.
+  base_table_collision:
+    table_near_edge_x_world: 0.63
+    robot_forward_extent_m: 0.35
+    minimum_clearance_m: 0.08
+
+hit_planning:
+  timing:
+    activate_before_hit_s: 1.20
+
+  # Do not hold a stale command across the second-bounce legality boundary.
+  decision:
+    mode: snap
+
+  reachability:
+    # The final workspace check is policy-relative after legal base movement.
+    lateral_reachability_mode: target_base
+
+  base:
+    # Strike base training support.  Yaw is fixed by training.
+    base_target_x_min: -0.15
+    base_target_x_max: 0.15
+    base_target_y_min: -0.50
+    base_target_y_max: 0.50
+    base_target_yaw_w_rad: 0.0
+    base_target_x_max_offset:
+    base_target_x_max_step:
+    base_target_y_max_offset:
+    base_target_y_max_step:
+
+  racket:
+    # Full Strike training ranges.  The selector prefers depth_intercept
+    # good_ranges first and rejects any candidate that cannot remain in these
+    # broader training ranges even after legal base motion.
+    forehand_racket_target_pose_range:
+      pos_x: [0.35, 0.90]
+      pos_y: [-0.65, -0.40]
+      pos_z: [-0.10, 0.55]
+      vel_x: [0.80, 3.50]
+      vel_y: [-1.00, 1.00]
+      vel_z: [-1.00, 1.00]
+    backhand_racket_target_pose_range:
+      pos_x: [0.35, 0.90]
+      pos_y: [-0.30, 0.35]
+      pos_z: [-0.10, 0.65]
+      vel_x: [0.80, 3.50]
+      vel_y: [-1.00, 1.00]
+      vel_z: [-1.00, 1.00]
+
+  smoothing:
+    ema:
+      # Event-root candidates must not be averaged into a point that no longer
+      # satisfies the first-bounce/second-bounce window.
+      strike_alpha: 1.0
+      position_alpha: 1.0
+      racket_velocity_alpha: 1.0
+      time_alpha: 1.0
+      max_position_step_m:
+      max_racket_velocity_step_mps:
+      max_time_step_s:

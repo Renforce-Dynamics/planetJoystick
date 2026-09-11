@@ -1,0 +1,6 @@
+# IceRibbon blue robot operator target (THU_P1 / 192.168.120.121).
+extends: ../../../common/planetj.yaml
+
+target:
+  host: 192.168.120.121
+  port: 50560

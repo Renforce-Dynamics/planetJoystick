@@ -1,0 +1,24 @@
+# Native MuJoCo source: all states are already in world metres.
+version: 1
+site: {name: mujoco}
+message_source:
+  kind: sim
+  connection: {}
+mocap:
+  max_stale_s: 0.10
+  sentinel_threshold: 1.0e+6
+  entities:
+    sim_imu: {kind: rigid_body, role: robot_imu}
+    sim_ball: {kind: rigid_body, role: ball_rigid}
+  transform:
+    scale_m_per_unit: 1.0
+    rotation_matrix_3x3:
+      - [1.0, 0.0, 0.0]
+      - [0.0, 1.0, 0.0]
+      - [0.0, 0.0, 1.0]
+    translation_m: [0.0, 0.0, 0.0]
+  ball_observer:
+    primary_source: ball_rigid
+    fallback_source: null
+    fd_vel_max_dt_s: 0.20
+    fd_vel_alpha: 0.40

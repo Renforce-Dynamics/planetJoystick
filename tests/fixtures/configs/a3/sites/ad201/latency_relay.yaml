@@ -1,0 +1,22 @@
+# Run on agi-bb (192.168.120.121) for an application-level UDP RTT test.
+version: 1
+
+ingress:
+  bind_host: 0.0.0.0
+  allowed_source_hosts: [192.168.120.120]
+
+target:
+  host: 192.168.120.120
+
+routes:
+  latency_echo:
+    port: 50590
+    target_port: 50591
+    magic: PLAT
+    packet_size: 108
+    delivery: all
+
+runtime:
+  receive_buffer_bytes: 262144
+  send_buffer_bytes: 262144
+  report_interval_s: 1.0

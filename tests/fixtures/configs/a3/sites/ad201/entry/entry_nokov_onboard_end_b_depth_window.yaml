@@ -1,0 +1,60 @@
+# AD201 B end / THU_P2: depth-window rally.
+version: 1
+transport_config: configs/a3/sites/ad201/transport_onboard_blackbox_white.yaml
+
+source:
+  kind: nokov
+  site_config: configs/a3/sites/ad201/nokov/end_b/site.yaml
+  snapshot_queue_frames: 4096
+  raw_queue_frames: 8
+
+recording:
+  enabled: true
+  transport: planetr
+  endpoint: "@planetr_p2"
+  queue_capacity: 16384
+  flush_interval_s: 0.5
+  trace_hz: 50.0
+
+perception:
+  ball:
+    # The current XING project exposes P1/P2 rigid bodies; the flying ball is
+    # selected from unlabeled markers inside the calibrated table volume.
+    source: raw
+    queue_drain_mode: latest
+    use_estimator: true
+    estimator_min_samples: 7
+    predict_hold_s: 0.10
+    bbox_xy_margin_m: 0.30
+    bbox_z_below_m: 0.05
+    bbox_z_above_m: 1.50
+    continuity_radius_m: 0.60
+    continuity_hold_s: 0.20
+    min_candidate_speed_m_s: 0.0
+
+  base:
+    enabled: true
+    required: true
+    role: robot_imu
+    # P1/P2 have independently fitted rigid-to-IMU face corrections.
+    use_quat: true
+    smoother:
+      passthrough: true
+      max_hold_frames: 0
+
+  racket:
+    # The current XING project does not advertise a racket rigid body.
+    enabled: false
+    role: racket
+    contact_pos_local_m: [0.0, 0.0, 0.0]
+    contact_quat_wxyz: [1.0, 0.0, 0.0, 0.0]
+    normal_axis_local: +y
+
+planning:
+  robot: a3
+  stale_perception_s: 0.10
+  target_yaw_w_rad: 0.0
+  rally:
+    enabled: true
+    strategy: depth_window
+    config: configs/a3/planner/rally_depth_window.yaml

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "message_source": "optitrack",
+  "entities": {
+    "P2": {
+      "enabled": true,
+      "role": "robot_imu",
+      "shift": {
+        "position_m": [0.0, 0.0, 0.0],
+        "quaternion_wxyz": [0.0, 0.0, 0.0, 1.0]
+      },
+      "calibration": {
+        "status": "field_verified",
+        "root_role": "robot_imu",
+        "root_site": "imu_in_pelvis",
+        "note": "Iceribbon P2 rigid body requires a 180 degree local Z rotation."
+      }
+    }
+  }
+}

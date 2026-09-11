@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "message_source": "optitrack",
+  "entities": {
+    "THU_P2": {
+      "enabled": true,
+      "role": "robot_imu",
+      "marker_set": "THU_P2",
+      "marker_template": "../../../../../common/pose_templates/hope_pku_hip_v2.json",
+      "shift": {
+        "position_m": [
+          0.00027191528792901154,
+          0.000688701260188863,
+          -0.0629452981197422
+        ],
+        "quaternion_wxyz": [
+          0.998547091470595,
+          0.005817799675990046,
+          0.05094499915401293,
+          -0.016567027003754533
+        ]
+      },
+      "calibration": {
+        "status": "calibrated",
+        "root_role": "robot_imu",
+        "root_site": "imu_in_pelvis",
+        "source_points_frame": "pelvis_link",
+        "generated_at": "2026-08-18T03:50:46.681169+00:00",
+        "generated_by": "scripts/calibrate_base_pose.py",
+        "site": "site.yaml",
+        "marker_order": "forward_plane_normal_then_centered_hungarian",
+        "marker_template": "../../../../../common/pose_templates/hope_pku_hip_v2.json",
+        "forward_plane_marker_names": [
+          "f2",
+          "f3",
+          "f4",
+          "f5"
+        ],
+        "plane_signature_rmse_median": 0.0004007042897390246,
+        "position_m": [
+          0.00027191528792901154,
+          0.000688701260188863,
+          -0.0629452981197422
+        ],
+        "quaternion_wxyz": [
+          0.998547091470595,
+          0.005817799675990046,
+          0.05094499915401293,
+          -0.016567027003754533
+        ],
+        "frames_used": 193,
+        "marker_rmse_median": 0.0016932933847387318,
+        "marker_rmse_max": 0.0017562935413574594,
+        "translation_std_m": [
+          4.902835732741788e-06,
+          1.0162015465194872e-05,
+          5.132388471502784e-06
+        ],
+        "rotation_error_median_deg": 0.005935836211420685,
+        "rotation_error_max_deg": 0.023605111334243537
+      }
+    }
+  }
+}

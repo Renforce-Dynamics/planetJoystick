@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "message_source": "nokov",
+  "transform": {
+    "scale_m_per_unit": 0.001,
+    "rotation_matrix_3x3": [
+      [0.0117945004, -0.0080407875, -0.9998981126],
+      [-0.999918225, -0.0050380121, -0.0117542239],
+      [-0.0049429855, 0.9999549811, -0.0080995508]
+    ],
+    "translation_m": [3.3718237595, 0.0109205995, 0.7485887477]
+  },
+  "calibration": {
+    "active_profile": "robot_end_b",
+    "profiles": {
+      "robot_end_a": {
+        "description": "AD201 A side: THU_P1 faces world +X toward End B.",
+        "transform": {
+          "scale_m_per_unit": 0.001,
+          "rotation_matrix_3x3": [
+            [-0.0117945004, 0.0080407875, 0.9998981126],
+            [0.999918225, 0.0050380121, 0.0117542239],
+            [-0.0049429855, 0.9999549811, -0.0080995508]
+          ],
+          "translation_m": [0.6281762405, -0.0109205995, 0.7485887477]
+        }
+      },
+      "robot_end_b": {
+        "description": "AD201 B side: THU_P2 faces world +X toward End A.",
+        "transform": {
+          "scale_m_per_unit": 0.001,
+          "rotation_matrix_3x3": [
+            [0.0117945004, -0.0080407875, -0.9998981126],
+            [-0.999918225, -0.0050380121, -0.0117542239],
+            [-0.0049429855, 0.9999549811, -0.0080995508]
+          ],
+          "translation_m": [3.3718237595, 0.0109205995, 0.7485887477]
+        }
+      }
+    }
+  },
+  "site_geometry": {
+    "source_origin": "AD201 legacy Nokov origin; not the IceRibbon origin and not the table center.",
+    "source_axes": "X left, Y up, Z from End A toward End B",
+    "world_axes": "X from active robot toward opponent, Y robot-left, Z up",
+    "table_center_world_m": [2.0, 0.0, 0.76],
+    "table_length_m": 2.7231802449,
+    "table_width_m": 1.5037835281,
+    "table_surface_z_m": 0.76,
+    "table_extent_world": {
+      "x_min": 0.6384098775,
+      "x_max": 3.3615901225,
+      "y_min": -0.7518917641,
+      "y_max": 0.7518917641,
+      "net_x": 2.0
+    },
+    "max_table_plane_error_m": 0.0010695567,
+    "side_pairing": {
+      "end_a": {"profile": "robot_end_a", "entity": "THU_P1", "rigid_body_id": 0},
+      "end_b": {"profile": "robot_end_b", "entity": "THU_P2", "rigid_body_id": 1}
+    }
+  },
+  "captures": {
+    "table_corners": {
+      "source_scale_m_per_unit": 0.001,
+      "source": "AD201 Table marker-set median, 270 frames",
+      "table_corners_source": [
+        [731.0758, 36.1574, 2740.4241],
+        [-772.6075, 30.7212, 2723.7659],
+        [-739.4016, 6.7211, 4.1920],
+        [759.6666, 16.3855, 18.4977]
+      ]
+    }
+  }
+}

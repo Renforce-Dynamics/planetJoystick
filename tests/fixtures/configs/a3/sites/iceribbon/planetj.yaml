@@ -1,0 +1,2 @@
+# Default IceRibbon operator target: blue robot.
+extends: planetj_blue.yaml

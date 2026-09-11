@@ -1,0 +1,7 @@
+# Final diagnostic variant: Base 200 ms + low-contact table-edge guard.
+extends: rally_feasi_batch_icefinal_base.yaml
+
+feasi_batch:
+  contact:
+    min_world_z_m: 0.90
+    outside_table_clearance_m: 0.10

@@ -1,0 +1,25 @@
+# AD201 A end: Nokov THU_P1 -> canonical Planet-PingPong world.
+version: 1
+site:
+  name: ad201_end_a
+
+message_source:
+  kind: nokov
+  calibration_data: site_nokov.json
+  pose_data: pose_nokov.json
+  connection:
+    server_ip: 10.1.1.198
+
+mocap:
+  max_stale_s: 0.10
+  sentinel_threshold: 1.0e+6
+  entities:
+    # Live XING descriptor verification on 2026-08-27.
+    THU_P1: {kind: rigid_body, role: robot_imu, id: 0}
+  transform:
+    scale_m_per_unit: 0.001
+  ball_observer:
+    primary_source: ball_rigid
+    fallback_source: null
+    fd_vel_max_dt_s: 0.20
+    fd_vel_alpha: 0.40

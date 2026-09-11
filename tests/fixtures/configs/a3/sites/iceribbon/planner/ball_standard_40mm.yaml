@@ -1,0 +1,38 @@
+# Default ball: mocap_tt baseline ITTF 40+ ball.
+
+id: standard_40mm
+name: "ITTF standard 40+ ball"
+calibration:
+  date: "mocap_tt_default"
+  source: ".reference/mocap_tt_tools/config/config.yaml"
+  inputs:
+    - .reference/mocap_tt_tools/config/config.yaml
+  notes: |
+    Baseline values copied from mocap_tt_tools:
+      simulate.k_air = 0.15
+      simulate.restitution_h = 0.77
+      simulate.restitution_v = 0.93
+    Site-specific Nokov drop-test values live in nokov_ball_drop_001.yaml and
+    must be enabled explicitly through a calibrated planner profile.
+
+# === ball intrinsics ===
+mass_kg: 0.0027
+radius_m: 0.02
+
+# === aerodynamics ===
+drag_k: 0.15
+
+# === ball-on-standard-table contact ===
+table_restitution_v: 0.93
+table_restitution_h: 0.77
+
+# === sim2sim MJCF hints (documentation only) ===
+mjcf_hints:
+  # MuJoCo scene ball-table pair. Slightly more damped than the old
+  # [0.05, 0.05] pair so 0.9/1.0/1.2 m drop tests stay within the measured
+  # table_restitution_v tolerance without moving the default serve hit-plane
+  # trajectory by more than a few milliseconds / millimeters.
+  solref_table_pair: [0.05, 0.052]
+  solref_table_geom: [0.005, 0.134]
+  solimp_table: [0.97, 0.99, 0.001]
+  friction_ball: [0.1, 0.001, 0.0001]

@@ -1,0 +1,6 @@
+# AD201 white robot operator target (192.168.120.122).
+extends: ../../../common/planetj.yaml
+
+target:
+  host: 192.168.120.122
+  port: 50560

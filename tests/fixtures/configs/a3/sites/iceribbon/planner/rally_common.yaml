@@ -1,0 +1,236 @@
+# Shared Rally planner runtime defaults.
+#
+# Author-facing layout follows the planner package split:
+#   trajectory_prediction: ball state -> predicted hit-plane crossing
+#   hit_planning:          predicted hit -> base/racket command
+# Runtime still normalizes these sections into the historical
+# planner/landing_target/command dictionaries so older scripts and ad-hoc
+# configs continue to work.
+
+# Equipment + scene refs. Explicit fields below win over values derived from
+# these files.
+ball:   configs/a3/sites/iceribbon/planner/ball_standard_40mm.yaml
+racket: configs/a3/sites/iceribbon/planner/racket_default.yaml
+# Scene XML -> derives table.{x_min,x_max,y_min,y_max,z_surface,net_height,
+# net_overhang} from the table/net bodies. Keep aligned with the scene launched
+# by sim/eval scripts (configs/sim/g1_track_motion_movable_base.yaml).
+scene:  assets/g1_description/g1_scene_table_tennis_movable.xml
+
+frames:
+  planner_frame: hitter_table
+  table_origin_world: [2.0, 0.0, 0.760]
+  table_top_z_world: 0.760
+
+planner_geometry:
+  # HITTER planner hit plane: robot-side table edge in table frame.
+  # This maps to world x=0.63 for the canonical scene. It is intentionally
+  # separate from the policy command surface below.
+  hit_plane_table_x: -1.37
+  # Optional policy timing/contact plane in HITTER table frame. Leave unset to
+  # use the paper's virtual hit-plane time directly. Set only for real-racket
+  # A/B tests that need the policy countdown to match measured contact x.
+  policy_contact_plane_table_x:
+  # HITTER opponent-half center landing target, table frame.
+  landing_target_table_xy: [0.685, 0.0]
+
+policy_command:
+  # Low-level HRLHit policy training surface: base-relative racket target x.
+  racket_target_rel_x: 0.40
+
+trajectory_prediction:
+  # analytic: low-latency model using external ball_vel.
+  # mocap_tt: previous mocap table-tennis baseline with internal estimation.
+  # hope: 3-stage pipeline (internal poly-fit velocity -> forward integration
+  #   with drag + bounce -> net clearance). Has warmup + bounce-reset latency.
+  # Use "analytic" explicitly; legacy "model_based" is rejected.
+  type: mocap_tt
+  # mocap_tt estimates velocity from the raw position stream internally.
+  use_ball_state_estimator: false
+  dt_integrate: 0.001
+  # mocap_tt simulate.max_steps=1000 at dt=0.001.
+  max_predict_time: 1.0
+  gravity_z: -9.81
+  # mocap_tt buffer_size=31, quadratic t->[x,y,z].
+  fit_window: 31
+  poly_order: 2
+  # mocap_tt_tools uses zmin < 0.05m above table as the bounce-history split.
+  bounce_z_tol: 0.05
+  max_table_bounces: 8
+  mocap_min_samples: 7
+  mocap_target_alpha: 0.30
+  mocap_time_alpha: 0.30
+  # drag_k comes from the ball equipment yaml unless overridden here.
+
+hit_planning:
+  # Ball/racket collision solve and return trajectory.
+  # mocap_tt flying_time=0.6.
+  delta_t_flight: 0.60
+  # racket_restitution comes from the racket equipment yaml unless overridden.
+
+  target:
+    # World-frame fallback for legacy configs. In HITTER-frame mode the runtime
+    # uses planner_geometry.landing_target_table_xy and maps it to world.
+    pos_x: 2.68
+    pos_y: 0.0
+    keep_y_at_hit: false
+
+  timing:
+    # mocap_tt max_time_left=1.0; keep the default reaction window aligned.
+    activate_before_hit_s: 1.00
+    lock_stroke_on_first_valid: false
+    stroke_switch_hysteresis_m: 0.08
+    stroke_switch_confirm_ticks: 2
+    min_time_to_hit_s: 0.03
+    max_time_to_hit_s: 1.0
+    # Keep the command target at the predicted crossing; advancing the target
+    # made forehand visibly finish/retract before the real contact.
+    advance_hit_time_s: 0.0
+    post_hit_x_margin: 0.0
+    incoming_vx_threshold: -0.05
+
+  inactive_command:
+    time_s: 1.00
+    rel_racket_target_pos_w: [0.40, -0.10, 0.25]
+    racket_target_vel_w: [0.0, 0.0, 0.0]
+
+  decision:
+    # snap: old tick-by-tick behavior.
+    # flow: keep the last valid HITTER-style command alive through short
+    # predictor gaps, while counting down to the original predicted hit time.
+    mode: flow
+    hold_invalid_s: 0.45
+    min_remaining_s: 0.03
+
+  reachability:
+    # Hard prediction-side strike bounds in HITTER table z. These preserve the
+    # previous world-z bounds 0.5..1.2m with table_top_z_world=0.760.
+    strike_reach_z_min: -0.26
+    strike_reach_z_max: 0.44
+    strike_reach_local_y_min: -0.65
+    strike_reach_local_y_max: 0.40
+    # Command-side reachable window after stroke/base decision.
+    reachable_y_min: -0.65
+    reachable_y_max: 0.40
+    reachable_z_min: -0.26
+    reachable_z_max: 0.44
+
+  stroke:
+    # Select forehand/backhand by hit point relative to base.
+    forehand_y_range: [-0.60, -0.30]
+    backhand_y_range: [-0.10, 0.30]
+    # Geometry stays calibration-neutral. Site-specific empirical corrections
+    # must not enter the shared planner contract implicitly.
+    forehand_pos_offset: [0.0, 0.0, 0.0]
+    backhand_pos_offset: [0.0, 0.0, 0.0]
+    forehand_axis: "-z"
+    backhand_axis: "z"
+    sign_invariant_rot: false
+    # The training landing-assist task classifies stroke side in world-Y
+    # relative to base. Set true only for yaw-aligned side logic.
+    stroke_side_in_base_frame: false
+
+  base:
+    # Canonical HITTER table-frame base x. This maps to world x=0.0 with the
+    # current table origin [2.0, 0.0, 0.760].
+    base_target_table_x: -2.0
+    # Legacy world-frame fallback for old configs/tools.
+    base_target_x: 0.0
+    base_target_y_min: -0.5
+    base_target_y_max: 0.5
+    # MARK(real-test-recenter): full xy recenter path for current real tests.
+    # Recenter base x/y continuously before a valid hit plan is available.
+    # This prevents a first-valid target jump when the robot starts off the
+    # canonical HITTER base pose, but it still commands base motion.
+    base_out_of_range_gain: 1.0
+    base_home_y: 0.20
+    base_target_x_max_offset: 0.12
+    base_target_x_max_step: 0.06
+    base_target_y_max_offset: 0.12
+    base_target_y_max_step: 0.06
+
+  racket:
+    forehand_racket_target_pose_range:
+      pos_x: [0.4, 0.4]
+      pos_y: [-0.6, -0.3]
+      pos_z: [0.0, 0.5]
+      vel_x: [1.0, 2.0]
+      vel_y: [-0.7, 0.7]
+      vel_z: [-0.2, 0.7]
+    backhand_racket_target_pose_range:
+      pos_x: [0.4, 0.4]
+      pos_y: [-0.1, 0.3]
+      pos_z: [0.0, 0.5]
+      vel_x: [1.0, 2.0]
+      vel_y: [-0.7, 0.7]
+      vel_z: [-0.2, 0.7]
+    pos_blend_min: 0.20
+    pos_blend_max: 0.85
+    vel_blend_min: 0.10
+    vel_blend_max: 0.50
+    directional_velocity_sampling:
+      enabled: true
+      pitch_deg_range: [-30.0, 45.0]
+      yaw_deg_range: [0.0, 0.0]
+      speed_scale_range: [0.85, 1.20]
+      min_speed: 0.8
+      max_speed: 2.6
+    racket_speed_min: 0.0
+    racket_speed_max: 3.0
+    # racket_target_vel_w is a world-axis TrackMotion command. Keep the blended speed
+    # magnitude but do not force it to impact-normal direction by default.
+    align_racket_velocity_to_normal: false
+  debug_fixed_front_strike:
+    enabled: false
+    rel_hit_y: -0.4
+    front_speed: 1.5
+    front_pitch_deg: 0.0
+    rel_hit_x:
+    rel_hit_z:
+
+  smoothing:
+    ema:
+      # Exponential moving average on planner strike output. Alpha is weight on
+      # the new sample; 1.0 = no filter. Keep position/velocity filtering for
+      # mocap jitter, but do not smooth policy-facing time_to_hit: replay A/B
+      # showed time smoothing can add tens of milliseconds of apparent delay.
+      strike_alpha: 0.3
+      position_alpha: 0.35
+      racket_velocity_alpha: 0.40
+      time_alpha: 1.0
+      max_position_step_m: 0.06
+      max_racket_velocity_step_mps: 0.45
+      max_time_step_s:
+
+table:
+  # x_min / x_max / y_min / y_max / z_surface / net_height / net_overhang are
+  # derived from the scene XML above unless overridden here. ball_radius / restitution_h /
+  # restitution_v come from the ball equipment yaml. Add overrides here only
+  # for one-off A/B tests against a divergent table.
+  # Default mocap_tt semantics use geometric table top + ball radius as the
+  # ball-centre contact plane. Site-specific values belong in calibrated
+  # override profiles, not here.
+
+deploy:
+  # Default deployment parameters. CLI args override these.
+  policy: hrlhit_mj
+  base_height: 0.76
+  # Keep Nokov robot_base as the policy root by default.
+  # Runtime profiles may override this under base_pose.policy_root_offset_w.
+  policy_root_offset_w: [0.0, 0.0, 0.0]
+  supervisor_bad_steps: 999999 # effectively disabled; stay in hit planner mode
+  supervisor_good_steps: 10
+  ball_pos: [3.27, -0.2, 1.0]
+  ball_vel: [-4.0, 0.0, 0.0]
+  landing_prepare_enabled: true
+  # R1+Y enters the separate LANDING_PREPARE FSM state. That state reuses the
+  # locomotion policy but consumes controller-computed velocity commands rather
+  # than joystick input. The target is policy-root world xy, aligned with the
+  # HITTER/table world mapping (x=-0.10 means table-frame x=-2.10 here).
+  # It is intentionally 10 cm behind the HRLHit command base target because the
+  # racket is still down before hit entry. Once close enough, the state holds
+  # zero velocity and waits for the operator to enter HRLHit manually.
+  landing_prepare_base_xy: [-0.10, 0.20]
+  landing_prepare_tolerance_xy: 0.08
+  landing_prepare_kp: 1.2
+  landing_prepare_max_speed_xy: [0.10, 0.12]
+  landing_prepare_timeout_s: 3.0

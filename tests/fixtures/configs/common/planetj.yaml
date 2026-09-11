@@ -1,0 +1,39 @@
+# Common PlanetJ controls. Site profiles inherit this file and override their
+# destination and any site-specific request/signal lists.
+version: 4
+device: /dev/input/js0
+
+target:
+  host: 127.0.0.1
+  port: 50560
+
+publisher:
+  hz: 50
+  ttl_ms: 100
+
+# Linux xpad: A=0 B=1 X=2 Y=3 LB=4 RB=5 View=6 Menu=7
+# Xbox/Home=8 LS=9 RS=10. Axes: LX=0 LY=1 LT=2 RX=3 RY=4 RT=5 DX=6 DY=7.
+# debug_name is local logging metadata and is never transmitted.
+inputs:
+  axes:
+    left_x: {index: 0, scale: 1.0, deadzone: 0.12}
+    left_y: {index: 1, scale: -1.0, deadzone: 0.12}
+    right_x: {index: 3, scale: 1.0, deadzone: 0.12}
+    right_y: {index: 4, scale: -1.0, deadzone: 0.12}
+    left_trigger: {index: 2, scale: 1.0, deadzone: 0.02}
+    right_trigger: {index: 5, scale: 1.0, deadzone: 0.02}
+  dpad:
+    x: {index: 6, scale: 1.0, threshold: 0.5}
+    y: {index: 7, scale: -1.0, threshold: 0.5}
+  requests:
+    - {buttons: [4, 0], blocked_by: [5], request_id: 6, debug_name: SERVE}
+    - {buttons: [5, 9], request_id: 0, debug_name: PASSIVE}
+    - {buttons: [5, 1], request_id: 1, debug_name: DAMPING}
+    - {buttons: [5, 0], request_id: 2, debug_name: FIXEDPOS}
+    - {buttons: [5, 2], request_id: 3, debug_name: LOCO}
+    - {buttons: [5, 4], request_id: 4, debug_name: HOLD_STATIC}
+    - {buttons: [5, 10], request_id: 5, debug_name: HOLD_MOVE}
+    - {buttons: [5, 3], request_id: 7, debug_name: STRIKE}
+  signals:
+    - {buttons: [8], signal_id: 0, debug_name: EMERGENCY_HALT, hold_after_release_ms: 500}
+    - {buttons: [5, 7], signal_id: 1, debug_name: RESET_SAFETY}
