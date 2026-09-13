@@ -1,7 +1,7 @@
 # AD201 Nokov End-A / End-B 配置
 
 AD201 使用自身的 Nokov 原点和桌角采集，不复用 IceRibbon 的场地变换。运行时仍把
-桌面中心统一映射到 Planet-PingPong world `[2.0, 0.0, 0.76]`，以保持 planner 与 A3 policy
+桌面中心统一映射到 planet-rally world `[2.0, 0.0, 0.76]`，以保持 planner 与 A3 policy
 的坐标契约一致。
 
 固定配对如下：
@@ -40,7 +40,7 @@ Nokov SDK 已验证可在同一台控制机上由 End A/B 两个独立进程并�
 P1/P2 使用完全独立的本机 endpoint 和录制目录，避免两路 trace、metadata 与
 DebugFrame 混流：
 
-| 实例 | PlanetR | PlanetD | onboard UDP | 录制目录 |
+| 实例 | PlanetRecord | PlanetD | onboard UDP | 录制目录 |
 | --- | --- | --- | --- | --- |
 | P1 / End A | `@planetr_p1` | `@planetd_p1` | `50571` | `recordings/ad201/p1` |
 | P2 / End B | `@planetr_p2` | `@planetd_p2` | `50572` | `recordings/ad201/p2` |
@@ -60,4 +60,4 @@ uv run --no-sync python scripts/run_planetd.py \
 ```
 
 蓝机器人 A3DB/relay 的控制 PC 目标端口必须设为 `50571`，白机器人设为 `50572`；
-仅拆 Unix endpoint 而仍让两个 PlanetR 监听同一 UDP 端口并不安全。
+仅拆 Unix endpoint 而仍让两个 PlanetRecord 监听同一 UDP 端口并不安全。

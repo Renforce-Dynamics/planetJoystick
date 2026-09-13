@@ -1,4 +1,4 @@
-# Planet-PingPong 配置范式
+# planet-rally 配置范式
 
 配置按“机器人 → 场地 → 消息源”组织。A3 的标准路径是：
 
@@ -36,7 +36,7 @@ configs/a3/
 - `<site>/planetj_blue.yaml` / `planetj_white.yaml`：真实机器人 operator 目标；blue
   固定为 `192.168.120.121`，white 固定为 `192.168.120.122`。无颜色后缀默认 blue。
 - `<site>/relay.yaml`：部署在中转机上的 UDP route；不属于某个消息源。
-- `<site>/transport_<用途>.yaml`：场地网络的 Planet-PingPong 发布目标；入口按用途引用。
+- `<site>/transport_<用途>.yaml`：场地网络的 planet-rally 发布目标；入口按用途引用。
   真实机器人使用 `_blue` / `_white` 后缀；无颜色后缀默认 blue。
 - `configs/common/*.yaml`：跨机器人、跨场地的固定配置；不得放现场标定值。
 - `configs/common/pose_templates/*.json`：硬件 MarkerSet 的固定几何和 MuJoCo 轴语义；

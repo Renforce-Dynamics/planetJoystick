@@ -10,7 +10,7 @@
 
 ```text
 NatNet 原始动捕坐标
-  -- site_optitrack.json: p_world = R @ p_mocap + t --> MuJoCo / Planet-PingPong world
+  -- site_optitrack.json: p_world = R @ p_mocap + t --> MuJoCo / planet-rally world
   -- 当前刚体 role_pose ----------------------------> robot_imu / imu_in_pelvis
   -- PlannerFrame :50550 ----------------------------> agi3dep
 ```
@@ -75,7 +75,7 @@ IceRibbon entry 指向 `configs/a3/planner/` 或 `configs/common/planner/`。
 
 机器人 Base 的位置和朝向始终来自 OptiTrack 的 `THU_P1` / `THU_P2` 刚体；
 `robot_imu` / `imu_in_pelvis` 只表示标定后的机器人标准原点，不表示使用 IMU 信号估计
-Base。球拍不依赖 OptiTrack 球拍刚体：PlanetR 根据同一动捕 Base 世界位姿和 onboard
+Base。球拍不依赖 OptiTrack 球拍刚体：PlanetRecord 根据同一动捕 Base 世界位姿和 onboard
 29 维关节角运行仓库内的 A3 FK，并把结果写入 `onboard.jsonl` 的 `racket_fk`；PlanetD
 同步显示 `world/robot/racket_fk`。FK 常量和实现位于 `src/planet_pingpong/kinematics/a3.py`。
 
@@ -120,7 +120,7 @@ rigid body 和 marker 已经执行过 `p_world = R @ p_mocap + t`，属于 world
 采集原始 NatNet 点时，使用不加载 calibration JSON 的临时 site：
 
 ```bash
-cd /home/idlab/ipingpong/Planet-PingPong
+cd /home/idlab/ipingpong/planet-rally
 cp configs/a3/sites/iceribbon/optitrack/site.yaml /tmp/planet_pingpong-optitrack-raw.yaml
 sed -i '/calibration_data: site_optitrack.json/d' /tmp/planet_pingpong-optitrack-raw.yaml
 
@@ -189,7 +189,7 @@ uv run --no-sync python scripts/probe.py \
 P2 raw pose
   -> site transform（mocap 到 world）
   -> 可选 role_pose（P2 rigid body 到 imu_in_pelvis）
-  -> Planet-PingPong PlannerFrame.policy_root_position_w_m / orientation_wxyz
+  -> planet-rally PlannerFrame.policy_root_position_w_m / orientation_wxyz
   -> UDP :50550
   -> agi3dep onboard policy_root
 ```
@@ -216,10 +216,10 @@ yaw = atan2(2*(w*z + x*y), 1 - 2*(y*y + z*z))
 
 ## 安全验证 PlannerFrame 链路
 
-控制机启动纯 OptiTrack Planet-PingPong（不是 mixed sim2sim 入口）：
+控制机启动纯 OptiTrack planet-rally（不是 mixed sim2sim 入口）：
 
 ```bash
-cd /home/idlab/ipingpong/Planet-PingPong
+cd /home/idlab/ipingpong/planet-rally
 uv run --no-sync python scripts/run.py \
   --config configs/a3/sites/iceribbon/entry/entry_optitrack_onboard.yaml
 ```
@@ -232,7 +232,7 @@ bash scripts/onboard/run_python_onboard.sh \
   --config configs/entry/entry_onboard_a3_real_readonly.yaml
 ```
 
-dry-run 输出中的 planner root 应与 Planet-PingPong 正式 Probe 的 P2 world pose 一致。
+dry-run 输出中的 planner root 应与 planet-rally 正式 Probe 的 P2 world pose 一致。
 确认 x/y/yaw 后，再进入 command-capable 真机流程。
 
 ## Sim2sim 与真机的区别
@@ -242,4 +242,4 @@ dry-run 输出中的 planner root 应与 Planet-PingPong 正式 Probe 的 P2 wor
 - Sim2sim `entry_optitrack_sim2sim.yaml`：mixed source 使用 A3SM/MuJoCo root 覆盖
   P2，确保仿真闭环一致；它不能用于验证真实 P2 root。
 
-每次修改 `site_optitrack.json` 后必须重启 Planet-PingPong，运行中不会自动重载标定。
+每次修改 `site_optitrack.json` 后必须重启 planet-rally，运行中不会自动重载标定。

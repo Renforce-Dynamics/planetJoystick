@@ -1,4 +1,4 @@
-"""Generic PLNJ operator-input wire contract shared with Planet-PingPong."""
+"""Generic PLNJ operator-input wire contract shared with planet-rally."""
 
 from __future__ import annotations
 
