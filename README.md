@@ -1,4 +1,6 @@
-# PlanetJ
+# planetJoystick
+
+仓库名称为 `planetJoystick`；安装包、Python import 和命令继续使用 `planetj`，协议包为 `planetj-protocol`。
 
 通用 Linux joystick 输入服务：设备采集 → 可配置的轴、按键组合与信号 → PLNJ。默认只有通用轴、急停和 reset 信号，request 映射为空。
 
