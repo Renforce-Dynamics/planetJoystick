@@ -1,0 +1,7 @@
+{
+  "packages": [
+    "external/cadence/packages/cadence-config",
+    "packages/planetj-protocol",
+    "."
+  ]
+}

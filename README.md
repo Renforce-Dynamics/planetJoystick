@@ -1,19 +1,64 @@
 # planetJoystick
 
-仓库名称为 `planetJoystick`；安装包、Python import 和命令继续使用 `planetj`，协议包为 `planetj-protocol`。
+**Configurable Linux joystick input.**
 
-通用 Linux joystick 输入服务：设备采集 → 可配置的轴、按键组合与信号 → PLNJ。默认只有通用轴、急停和 reset 信号，request 映射为空。
+planetJoystick turns Linux joystick events into device-independent axes, requests and safety signals over PLNJ. Device reconnects and disconnected input are handled by the service.
+
+Task repositories define the meaning of request IDs and supply their own button mappings. The built-in profile provides generic axes and safety signals with an empty request map.
+
+## Quick start
+
+Requires Linux, Python 3.10+ and `uv`.
 
 ```bash
-./scripts/setup.sh --wheelhouse /path/to/wheels
+git clone --recurse-submodules git@github.com:Renforce-Dynamics/planetJoystick.git
+cd planetJoystick
+./scripts/bootstrap.sh
 ./scripts/doctor.sh
-./scripts/run.sh -- --config configs/xbox.yaml
+./scripts/run.sh -- --duration-s 2
+./scripts/test.sh
+```
+
+## Packages and dependencies
+
+`planetj` provides the service and CLI; `planetj-protocol` provides the shared wire codec. The `external/cadence` submodule supplies only `cadence-config` to this repository's bootstrap. Cadence runtime, robot SDKs and planner packages are not installed.
+
+## Configuration
+
+The default is `pkg://planetj/data/xbox.yaml`. Create a local overlay:
+
+```yaml
+extends: pkg://planetj/data/xbox.yaml
+target:
+  host: 127.0.0.1
+  port: 50560
+inputs:
+  requests:
+    - buttons: [4, 0]
+      request_id: 6
+      debug_name: CUSTOM_REQUEST
+```
+
+```bash
+.venv/bin/planetj --config /path/to/operator.yaml --check
+.venv/bin/planetj --config /path/to/operator.yaml
+```
+
+The requests list replaces the inherited list. Relative `extends` paths resolve beside the declaring YAML. Device paths such as `/dev/input/js0` are passed to Linux directly.
+
+Rally bindings belong to [planet-rally](https://github.com/Renforce-Dynamics/planet-rally/tree/main/configs/operators), and `cadence-rally` interprets their IDs. See [configuration](docs/configuration.md) for ownership and validation details.
+
+## Development
+
+```bash
+./scripts/submodules.sh init    # initialize or restore pinned dependencies
+./scripts/submodules.sh check
 ./scripts/test.sh
 ./scripts/build.sh
 ```
 
-可直接执行 `planetj --check`、`planetj --duration-s 2`。默认配置使用包内资源，从任意目录可运行。无手柄时发布 disconnected 与零输入；设备重新出现后重连。按键 ID 的业务含义由消费端定义。
+Submodules pin source commits; Python requirements describe package compatibility. Bootstrap installs only the explicit packages in `source-workspace.json`. `scripts/setup.sh --wheelhouse /path/to/wheels` is available for package-based installation. Upgrade dependencies by committing reviewed submodule revisions with the parent repository.
 
-仓库内包含独立发布的 `planetj-protocol`，发送端和消费端共享编解码。既不依赖 planet-rally，也不依赖 Cadence 执行内核、SDK、模型或 NumPy。A3 按键 profile 在 `cadence-rally` 的应用 bundle 中，测试目录里的旧 profile 仅用作兼容性 fixture。
+## Authorship and license
 
-编辑本仓库 YAML 设置设备和地址；使用 `extends` 复用配置，普通路径相对于声明文件。构建输出包含主包和协议包。
+Developed and maintained by [Renforce Dynamics](https://github.com/Renforce-Dynamics). See [AUTHORS.md](AUTHORS.md). Project code is available under the [MIT License](LICENSE).

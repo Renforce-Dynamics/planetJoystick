@@ -3,6 +3,10 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
+authors = [{name = "Renforce Dynamics"}]
+maintainers = [{name = "Renforce Dynamics"}]
+readme = "README.md"
+license = {file = "LICENSE"}
 name = "planetj-protocol"
 version = "0.1.0"
 requires-python = ">=3.10"
@@ -18,3 +22,8 @@ include = ["planetj_protocol*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[project.urls]
+Repository = "https://github.com/Renforce-Dynamics/planetJoystick"
+Issues = "https://github.com/Renforce-Dynamics/planetJoystick/issues"
+Documentation = "https://github.com/Renforce-Dynamics/planetJoystick#readme"
