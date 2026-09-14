@@ -11,10 +11,11 @@ name = "planetj"
 version = "0.1.0"
 requires-python = ">=3.10"
 description = "Configurable Linux joystick input"
-dependencies = ["cadence-config>=0.1,<0.2", "planetj-protocol>=0.1,<0.2"]
+dependencies = ["cadence-config>=0.1,<0.2", "cadence-protocol>=0.1,<0.2", "planetj-protocol>=0.1,<0.2"]
 
 [project.scripts]
 planetj = "planetj.runtime:main"
+planetj-upper = "planetj.upper_stream:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

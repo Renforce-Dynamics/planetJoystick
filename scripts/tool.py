@@ -19,7 +19,7 @@ def invoke(cmd):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("action", choices=["setup", "build", "test", "doctor", "run"])
+    p.add_argument("action", choices=["setup", "build", "test", "doctor", "run", "upper-stream"])
     p.add_argument("--python", default=os.environ.get("CADENCE_PYTHON", sys.executable))
     p.add_argument(
         "--venv", default=os.environ.get("CADENCE_VENV", str(ROOT / ".venv"))

@@ -158,6 +158,8 @@ def _argument_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("--config", default="pkg://planetj/data/xbox.yaml")
   parser.add_argument("--check", action="store_true", help="Validate configuration without opening a joystick")
+  parser.add_argument("--check-remote", action="store_true", help="Validate bindings against the configured Cadence operator endpoint and exit")
+  parser.add_argument("--remote-timeout-s", type=float, default=1.0, help="Timeout for --check-remote")
   parser.add_argument("--duration-s", type=float, default=0.0, help="Stop after this duration; 0 runs until interrupted")
   return parser
 
@@ -248,7 +250,29 @@ def main(argv=None) -> int:
     config = load_config(args.config)
   except PlanetJConfigError as error:
     parser.error(str(error))
+  if args.check_remote:
+    try:
+      check_remote(config, timeout_s=args.remote_timeout_s)
+    except (OSError, ValueError) as error:
+      parser.error(f"remote binding check failed: {error}")
+    print(f"PlanetJ remote bindings valid: {config.target.host}:{config.target.port}")
+    return 0
   if args.check:
     print(f"PlanetJ configuration valid: {config.source_path}")
     return 0
   return run(config, args.duration_s)
+
+
+def check_remote(config: PlanetJConfig, *, timeout_s: float = 1.0):
+  """Describe the live catalog without publishing a state request or opening input."""
+  from cadence_protocol.client import OperatorClient
+  missing = [mapping.debug_name for mapping in config.inputs.requests if mapping.state_key is None]
+  if missing:
+    raise PlanetJConfigError(
+      "remote checks require state_key on legacy list bindings: " + ", ".join(missing)
+      + "; alternatively use a mapping keyed by state name"
+    )
+  with OperatorClient(config.target.host, config.target.port, timeout_s=timeout_s) as client:
+    return client.validate_bindings([
+      (mapping.request_id, mapping.state_key) for mapping in config.inputs.requests
+    ])

@@ -126,11 +126,14 @@ class RequestMapping:
   request_id: int
   debug_name: str
   blocked_by: tuple[int, ...] = ()
+  state_key: str | None = None
 
   def __post_init__(self) -> None:
     _validate_chord(self.buttons, self.blocked_by, self.debug_name)
     if isinstance(self.request_id, bool) or not 0 <= self.request_id <= 0xFFFF:
       raise PlanetJConfigError("request_id must be in [0, 65535]")
+    if self.state_key is not None and (not isinstance(self.state_key, str) or not self.state_key.strip()):
+      raise PlanetJConfigError("state_key must be a non-empty string")
 
 
 @dataclass(frozen=True, slots=True)
@@ -259,14 +262,34 @@ def _dpad_mapping(value: Any, path: str) -> DpadAxisMapping:
   )
 
 
-def _request_mapping(value: Any, path: str) -> RequestMapping:
+def _request_mapping(value: Any, path: str, state_key: str | None = None) -> RequestMapping:
   raw = _mapping(value, path)
-  _only_keys(raw, {"buttons", "blocked_by", "request_id", "debug_name"}, path)
+  _only_keys(raw, {"buttons", "blocked_by", "request_id", "debug_name", "state_key"}, path)
+  state_key = raw.get("state_key", state_key)
+  debug_name = raw.get("debug_name", state_key.upper() if isinstance(state_key, str) else None)
   return RequestMapping(
     buttons=_button_tuple(raw["buttons"], f"{path}.buttons"),
     blocked_by=tuple(_integer(item, f"{path}.blocked_by") for item in _sequence(raw.get("blocked_by", ()), f"{path}.blocked_by")),
     request_id=_integer(raw["request_id"], f"{path}.request_id"),
-    debug_name=raw["debug_name"],
+    debug_name=debug_name,
+    state_key=state_key,
+  )
+
+
+def _request_mappings(value: Any) -> tuple[RequestMapping, ...]:
+  if value is None:
+    return ()
+  if isinstance(value, Mapping):
+    result = []
+    for name, item in value.items():
+      if not isinstance(name, str) or not name.strip():
+        raise PlanetJConfigError("inputs.requests keys must be non-empty state names")
+      if item is not None:
+        result.append(_request_mapping(item, f"inputs.requests.{name}", name))
+    return tuple(result)
+  return tuple(
+    _request_mapping(item, f"inputs.requests[{index}]")
+    for index, item in enumerate(_sequence(value, "inputs.requests"))
   )
 
 
@@ -306,7 +329,7 @@ def load_config(path: str | Path) -> PlanetJConfig:
         axes=tuple((name, _axis_mapping(axes[name], f"inputs.axes.{name}")) for name in AXIS_NAMES),
         dpad_x=_dpad_mapping(dpad["x"], "inputs.dpad.x"),
         dpad_y=_dpad_mapping(dpad["y"], "inputs.dpad.y"),
-        requests=tuple(_request_mapping(item, f"inputs.requests[{index}]") for index, item in enumerate(_sequence(inputs.get("requests", ()), "inputs.requests"))),
+        requests=_request_mappings(inputs.get("requests", ())),
         signals=tuple(_signal_mapping(item, f"inputs.signals[{index}]") for index, item in enumerate(_sequence(inputs.get("signals", ()), "inputs.signals"))),
       ),
       source_path=source_path,

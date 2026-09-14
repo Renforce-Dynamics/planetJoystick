@@ -1,0 +1,2 @@
+extends: pkg://planetj/data/cadence_upper_stream.yaml
+# Override device, endpoint, joint order/limits, and axis mappings here.

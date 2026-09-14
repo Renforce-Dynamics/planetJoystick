@@ -1,5 +1,6 @@
 {
   "packages": [
+    "external/cadence/packages/cadence-protocol",
     "external/cadence/packages/cadence-config",
     "packages/planetj-protocol",
     "."

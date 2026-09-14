@@ -8,5 +8,6 @@
   "run": [
     "-m",
     "planetj"
-  ]
+  ],
+  "upper-stream": ["-m", "planetj.upper_stream"]
 }

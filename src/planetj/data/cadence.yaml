@@ -1,0 +1,7 @@
+extends: xbox.yaml
+inputs:
+  requests:
+    passive: {buttons: [5, 9], request_id: 0}
+    damping: {buttons: [5, 1], request_id: 1}
+    fixedpos: {buttons: [5, 0], request_id: 2}
+    loco: {buttons: [5, 2], request_id: 3}
