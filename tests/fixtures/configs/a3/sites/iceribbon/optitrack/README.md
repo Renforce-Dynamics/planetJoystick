@@ -1,7 +1,7 @@
 # Iceribbon OptiTrack 标定与真机 Root 验证
 
 通用的新场地采集、A/B 换侧和真机验收流程见
-[OptiTrack 球桌 A/B 侧快速标定 SOP](../../../../../docs/guides/optitrack-calibration-zh.md)。
+[OptiTrack 球桌 A/B 侧快速标定 SOP](https://github.com/Renforce-Dynamics/planet-rally/blob/main/docs/guides/optitrack-calibration-zh.md)。
 新 side bundle 固定配对为 A 侧 `robot_end_a + THU_P1`、B 侧
 `robot_end_b + THU_P2`。根目录下旧 `site.yaml` 仍保留 P2 兼容入口，不作为新 A/B
 配置的参数来源。
