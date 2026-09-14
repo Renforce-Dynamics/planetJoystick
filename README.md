@@ -1,79 +1,64 @@
 # planetJoystick
 
-**Configurable Linux joystick input.**
+读取 Linux 手柄，发送 operator 请求、摇杆输入和连续上肢关节目标。
 
-planetJoystick turns Linux joystick events into device-independent axes, requests and safety signals over PLNJ. Device reconnects and disconnected input are handled by the service.
+## 安装与启动
 
-The `xbox.yaml` device profile provides generic axes and safety signals. The optional `operator.yaml` profile adds the reusable passive, damping, fixed-position and locomotion bindings. Task repositories extend these named bindings with their own states.
-
-## Quick start
-
-Requires Linux, Python 3.10+ and `uv`.
+需要 Linux、Python 3.10+、`uv`。
 
 ```bash
 git clone --recurse-submodules git@github.com:Renforce-Dynamics/planetJoystick.git
 cd planetJoystick
 ./scripts/bootstrap.sh
-./scripts/doctor.sh
-./scripts/run.sh -- --duration-s 2
-./scripts/test.sh
+
+./scripts/run.sh -- --config pkg://planetj/data/operator.yaml
 ```
 
-## Packages and dependencies
+默认读取 `/dev/input/js0`，发送到 `127.0.0.1:50560`；持续运行，Ctrl+C 退出。
+`operator.yaml` 包含 passive、damping、fixedpos、loco 请求。
+只发送摇杆和安全信号时，选择 `pkg://planetj/data/xbox.yaml`。
 
-`planetj` provides operator input and an independent upper-joint producer. The [planetConfig](https://github.com/Renforce-Dynamics/planetConfig) submodule supplies `planet-config` for configuration and `planet-protocol` for PLNJ, discovery and joint-target clients. `planetj-protocol` preserves existing PLNJ imports. The complete source and package dependency graph is independent of any robot runtime or SDK.
+## 配置接收端和按键
 
-## Configuration
-
-The default is `pkg://planetj/data/xbox.yaml`, which has no state requests. Start from the optional base motion bindings and override the fields required by your receiver:
+新建 `operator-site.yaml`：
 
 ```yaml
 extends: pkg://planetj/data/operator.yaml
+device: /dev/input/js0
 target:
-  host: 127.0.0.1
+  host: 192.168.1.100
   port: 50560
 inputs:
   requests:
     loco:
       buttons: [5, 2]
-    passive: null
 ```
 
 ```bash
-.venv/bin/planetj --config /path/to/operator.yaml --check
-.venv/bin/planetj --config /path/to/operator.yaml --check-remote
-.venv/bin/planetj --config /path/to/operator.yaml
+./scripts/run.sh -- --config ./operator-site.yaml
 ```
 
-Named request mappings merge by state key; `null` disables an inherited binding. Legacy request lists still replace the whole list. `--check` is offline. `--check-remote` describes the configured operator endpoint, checks state names and IDs (including aliases), and exits without publishing commands. Normal input does not require the receiver to start first. Relative `extends` paths resolve beside the declaring YAML; device paths are passed to Linux directly.
+按实际部署修改地址。请求按名称逐项继承，`null` 禁用继承项；
+状态 ID 和名称由接收端解释。接收端启动后，可用
+`.venv/bin/planetj --config ./operator-site.yaml --check-remote` 检查配对。
 
-Rally bindings belong to [planet-rally](https://github.com/Renforce-Dynamics/planet-rally/tree/main/configs/operators). The receiver owns the state catalog and interprets each request. Cadence is one compatible receiver; `cadence-rally` extends its catalog with task states. See [configuration](docs/configuration.md) for ownership and matching rules.
-
-## Continuous upper-joint input
-
-`planetj-upper` publishes joint positions in radians through the shared joint-target protocol. The packaged example configures the 14 A3 arm joints; joint count, order, axis mappings, angular scales, limits and rate are configurable.
+## 连续上肢目标
 
 ```bash
-./scripts/upper-stream.sh -- --check
-./scripts/upper-stream.sh
-./scripts/upper-stream.sh -- --source sine --duration-s 10
+./scripts/upper-stream.sh -- --config pkg://planetj/data/upper_stream.yaml
 ```
 
-The default source is a physical Linux joystick. Disconnecting it stops target publication. The sender discovers state activations but does not switch robot states, set PD gains or send a timeout fallback; the receiver owns command retention. Its input connection is independent of PLNJ's emergency latch. The [upper-stream example](examples/upper_stream/README.md) documents configuration, demonstration sources and optional integration with Cadence, whose streamed-upper states retain the latest accepted target during a disconnect.
+目标角度单位为 rad。配置决定关节顺序、轴映射、角度范围和发送频率。
+默认采集实体手柄；断开后停止发送，目标保持与动作执行由接收端负责。
 
-## Development
+## 文档与开发
 
-```bash
-./scripts/submodules.sh init    # initialize or restore pinned dependencies
-./scripts/submodules.sh check
-./scripts/test.sh
-./scripts/build.sh
-```
+- [配置和键位继承](docs/configuration.md)
+- [上肢发送示例](examples/upper_stream/README.md)
 
-Submodules pin source commits; Python requirements describe package compatibility. Bootstrap installs only the explicit packages in `source-workspace.json`. `scripts/setup.sh --wheelhouse /path/to/wheels` is available for package-based installation. Upgrade dependencies by committing reviewed submodule revisions with the parent repository.
+依赖 [planetConfig](https://github.com/Renforce-Dynamics/planetConfig) 的配置和协议包，
+不依赖 Cadence 或 SDK。
 
-Tool defaults can be configured with `PLANET_PYTHON`, `PLANET_VENV` and `PLANET_WHEELHOUSE`, or with the corresponding command-line options.
+开发：`./scripts/test.sh` 运行测试，`./scripts/build.sh` 构建安装包。
 
-## Authorship and license
-
-Developed and maintained by [Renforce Dynamics](https://github.com/Renforce-Dynamics). See [AUTHORS.md](AUTHORS.md). Project code is available under the [MIT License](LICENSE).
+工具支持 `--venv /path/to/env`。由 **Renforce Dynamics** 开发维护，采用 [MIT License](LICENSE)。
