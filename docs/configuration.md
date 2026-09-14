@@ -2,9 +2,15 @@
 
 ## Defaults and task ownership
 
-`src/planetj/data/xbox.yaml` is the packaged device default (`pkg://planetj/data/xbox.yaml`). `configs/xbox.yaml` is the source example. Generic defaults contain axes, D-pad and safety signals; `inputs.requests` is empty.
+Each process selects a root entry explicitly:
 
-`pkg://planetj/data/operator.yaml` extends the device profile with named bindings for passive (0), damping (1), fixedpos (2) and loco (3). Task repositories extend these base requests. Rally owns its additional mappings in `planet-rally/src/planet_pingpong/data/configs/operators/rally.yaml`. The task's `configs/operators/rally.yaml` forwards to that packaged profile. Old profiles under tests remain compatibility fixtures.
+| Entry | Local profile | Purpose |
+| --- | --- | --- |
+| `configs/entry/entry_joystick.yaml` | `configs/xbox.yaml` | Axes, D-pad and safety signals; no state requests |
+| `configs/entry/entry_operator.yaml` | `configs/operator.yaml` | Adds passive (0), damping (1), fixedpos (2), loco (3) |
+| `configs/entry/entry_upper_stream.yaml` | `configs/upper_stream.yaml` | Independent continuous joint-target producer |
+
+The operator profile inherits the root device profile. Task repositories maintain their own bindings, such as `planet-rally/configs/operators/rally.yaml`. Wheels contain no configuration or data files. A wheel installation uses an explicitly supplied configuration tree.
 
 Use `planetj --config FILE --check` for offline validation. `device` is a Linux device path, and `target` is a network address; neither is rewritten relative to YAML. Request IDs are interpreted by the consuming application.
 
@@ -35,7 +41,7 @@ All service configuration entry points use `planet-config`; each service validat
 
 Mappings merge recursively; lists and scalars replace. Missing parents, duplicate YAML keys and inheritance cycles fail. A service may reject fields that are valid for a different service. `compose` keys are loader directives, not fields added to the resulting service configuration.
 
-Relative inheritance paths resolve beside the YAML declaring them. `pkg://package/path` resolves installed package resources. Resource fields accessed through `ResolvedConfig.path()` resolve relative to their declaration; output directories and Linux device/abstract-socket endpoints follow the consuming service's rules below. The generic loader does not rewrite every string into a filesystem path.
+All service profiles live in the root `configs/` tree; wheels contain code only. An explicit `--config` filesystem entry is required. Relative inheritance paths resolve beside the YAML declaring them, without searching another directory. Resource fields accessed through `ResolvedConfig.path()` resolve relative to their declaration; output directories and Linux device/abstract-socket endpoints follow the consuming service's rules below. The generic loader does not rewrite every string into a filesystem path.
 
 Source ownership, Python dependencies and YAML inheritance are separate: Git submodules select code revisions; package metadata selects compatible installed distributions; `extends` selects configuration values. Changing a Git submodule does not select a task profile automatically.
 

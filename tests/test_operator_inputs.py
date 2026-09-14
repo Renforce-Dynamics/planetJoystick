@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from pathlib import Path
 from dataclasses import replace
 import json
 import socket
@@ -15,7 +16,9 @@ from planetj.upper_stream import (
 )
 
 
-def overlay(tmp_path, overrides, base="pkg://planetj/data/operator.yaml"):
+ROOT = Path(__file__).resolve().parents[1]
+
+def overlay(tmp_path, overrides, base=str(ROOT / "configs/entry/entry_operator.yaml")):
     path = tmp_path / "overlay.yaml"
     path.write_text(yaml.safe_dump({"extends": base, **overrides}))
     return path
@@ -31,7 +34,7 @@ def test_named_request_inheritance_disable_and_default_names(tmp_path):
     assert bindings["loco"].request_id == 3
     assert bindings["loco"].buttons == (5, 3)
     assert bindings["custom"].debug_name == "CUSTOM"
-    assert load_config("pkg://planetj/data/operator.yaml").inputs.signals == load_config("pkg://planetj/data/xbox.yaml").inputs.signals
+    assert load_config(str(ROOT / "configs/entry/entry_operator.yaml")).inputs.signals == load_config(str(ROOT / "configs/entry/entry_joystick.yaml")).inputs.signals
 
 
 def test_named_request_rejects_duplicate_ids(tmp_path):
@@ -106,8 +109,8 @@ def test_offline_check_does_not_open_socket_or_joystick(monkeypatch):
     def forbidden(*args, **kwargs):
         pytest.fail("offline check attempted I/O")
     monkeypatch.setattr(socket, "socket", forbidden)
-    assert main(["--config", "pkg://planetj/data/operator.yaml", "--check"]) == 0
-    assert upper_main(["--check"]) == 0
+    assert main(["--config", str(ROOT / "configs/entry/entry_operator.yaml"), "--check"]) == 0
+    assert upper_main(["--config", str(ROOT / "configs/entry/entry_upper_stream.yaml"), "--check"]) == 0
 
 
 def test_remote_check_failure_is_explicit(tmp_path):
@@ -120,7 +123,7 @@ def test_remote_check_failure_is_explicit(tmp_path):
 
 
 def test_upper_default_is_fourteen_joints_with_bounded_axis_offsets():
-    config = load_upper_config("pkg://planetj/data/upper_stream.yaml")
+    config = load_upper_config(str(ROOT / "configs/entry/entry_upper_stream.yaml"))
     assert len(config.names) == 14
     assert axis_target(config, [0] * 8) == config.initial_position
     target = axis_target(config, [1] * 8)
@@ -135,7 +138,7 @@ def test_upper_default_is_fourteen_joints_with_bounded_axis_offsets():
 
 
 def test_upper_source_uses_physical_connection_and_stops_on_disconnect():
-    config = load_upper_config("pkg://planetj/data/upper_stream.yaml")
+    config = load_upper_config(str(ROOT / "configs/entry/entry_upper_stream.yaml"))
     source = JoystickSource(config)
 
     class Device:
@@ -175,7 +178,7 @@ class Client:
 
 
 def test_sender_new_activation_resets_sequence_but_disconnect_never_sends_default():
-    config = load_upper_config("pkg://planetj/data/upper_stream.yaml")
+    config = load_upper_config(str(ROOT / "configs/entry/entry_upper_stream.yaml"))
     client = Client(14)
     source = SampleSource(tuple(0.5 for _ in range(14)))
     sender = UpperStreamSender(config, client, source)
@@ -197,7 +200,7 @@ def test_sender_new_activation_resets_sequence_but_disconnect_never_sends_defaul
 
 
 def test_receipt_loss_pauses_and_preserves_sequence_for_same_activation():
-    config = load_upper_config("pkg://planetj/data/upper_stream.yaml")
+    config = load_upper_config(str(ROOT / "configs/entry/entry_upper_stream.yaml"))
     client = Client(14)
     sender = UpperStreamSender(config, client, SampleSource(config.initial_position))
     client.fail_send = True
@@ -210,7 +213,7 @@ def test_receipt_loss_pauses_and_preserves_sequence_for_same_activation():
 
 
 def test_sender_fails_on_receiver_dimension_mismatch():
-    config = load_upper_config("pkg://planetj/data/upper_stream.yaml")
+    config = load_upper_config(str(ROOT / "configs/entry/entry_upper_stream.yaml"))
     sender = UpperStreamSender(config, Client(2), SampleSource(config.initial_position))
     with pytest.raises(ValueError, match="configured 14"):
         sender.tick(0)
@@ -225,7 +228,7 @@ def test_explicit_sine_demo_streams_over_udp_without_hardware():
         return {"schema": request["schema"], "type": "receipt", "accepted": True,
                 "activation": request["activation"], "sequence": request["sequence"]}
     with udp_server(receive) as (host, port):
-        config = replace(load_upper_config("pkg://planetj/data/upper_stream.yaml"), host=host, port=port)
+        config = replace(load_upper_config(str(ROOT / "configs/entry/entry_upper_stream.yaml")), host=host, port=port)
         assert run_upper(config, source_kind="sine", duration_s=0.15) == 0
     assert len(frames) >= 3
     assert [frame["sequence"] for frame in frames] == list(range(len(frames)))
@@ -239,7 +242,7 @@ def test_upper_config_supports_another_joint_count_and_rejects_bad_limits(tmp_pa
         "joints": {"names": ["arm"], "initial_position": [0.1], "position_min": [-1], "position_max": [1]},
         "axes": axes,
         "demo": {"scripted_frames": [[0.2]]},
-    }, "pkg://planetj/data/upper_stream.yaml")
+    }, str(ROOT / "configs/entry/entry_upper_stream.yaml"))
     config = load_upper_config(path)
     assert len(config.names) == 1
     raw = yaml.safe_load(path.read_text())

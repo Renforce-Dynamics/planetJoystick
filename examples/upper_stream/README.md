@@ -12,18 +12,18 @@ Clone and bootstrap `cadence` and `planetJoystick` independently with their pinn
 submodules. Install Cadence's simulation and inference extras using its setup
 instructions. Each process uses its own virtual environment.
 
-In the Cadence repository, start the operator-enabled simulation:
+In the Cadence repository, start the operator-enabled mock runtime:
 
 ```bash
-.venv/bin/cadence run --config pkg://cadence/data/a3_operator_stream_demo.yaml --duration-s 0
+./scripts/run.sh --config configs/entry/a3/mock/entry_a3_operator_stream.yaml
 ```
 
 In the planetJoystick repository, verify the live catalog, then start operator
 input in a second terminal:
 
 ```bash
-.venv/bin/planetj --config pkg://planetj/data/operator.yaml --check-remote
-.venv/bin/planetj --config pkg://planetj/data/operator.yaml
+.venv/bin/planetj --config configs/entry/entry_operator.yaml --check-remote
+.venv/bin/planetj --config configs/entry/entry_operator.yaml
 ```
 
 Use RB+A for `fixedpos` (ID 2), then RB+X for `loco` (ID 3). The other base bindings
@@ -33,8 +33,8 @@ The default profile also preserves the emergency and reset signals from `xbox.ya
 Start the independent upper-joint producer in a third terminal:
 
 ```bash
-./scripts/upper-stream.sh -- --config examples/upper_stream/config.yaml --check
-./scripts/upper-stream.sh -- --config examples/upper_stream/config.yaml
+./scripts/upper-stream.sh --config examples/upper_stream/config.yaml --check
+./scripts/upper-stream.sh --config examples/upper_stream/config.yaml
 ```
 
 The default source opens `/dev/input/js0`. Its two sticks offset shoulder pitch
@@ -46,8 +46,8 @@ limits bound the generated targets.
 For an explicit demonstration without a physical joystick:
 
 ```bash
-./scripts/upper-stream.sh -- --source sine --duration-s 10
-./scripts/upper-stream.sh -- --source scripted --duration-s 3
+./scripts/upper-stream.sh --config configs/entry/entry_upper_stream.yaml --source sine --duration-s 10
+./scripts/upper-stream.sh --config configs/entry/entry_upper_stream.yaml --source scripted --duration-s 3
 ```
 
 The motion state must already be active. The producer never selects a robot state.
@@ -56,7 +56,7 @@ frame. The sine source moves only the configured axis-driven joints.
 
 ## Configuration and lifecycle
 
-`config.yaml` extends the packaged 14-joint example. Change `device`, `target`,
+`config.yaml` extends the local `configs/entry/entry_upper_stream.yaml`, whose root profile is `configs/upper_stream.yaml`. Change `device`, `target`,
 `publisher`, `joints`, `axes`, or `demo` in an overlay. `joints.names` defines the
 complete output order; `initial_position`, `position_min`, and `position_max`
 must have the same length. Another robot may use any nonzero joint count. The

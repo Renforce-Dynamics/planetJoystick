@@ -14,7 +14,7 @@ import math
 from pathlib import Path
 import time
 
-from planet_config import load_config as load_composed_config, resolve_resource
+from planet_config import load_config as load_composed_config
 
 from .runtime import LinuxJoystick, _analog
 
@@ -71,7 +71,9 @@ class UpperStreamConfig:
 
 def load_config(path) -> UpperStreamConfig:
     import ipaddress
-    source = resolve_resource(path)
+    if "://" in str(path):
+        raise ValueError("configuration must be an explicit filesystem entry")
+    source = Path(path).expanduser().resolve()
     raw = load_composed_config(source).data
     _mapping(raw, {"version", "target", "device", "publisher", "joints", "axes", "demo"}, "upper stream")
     if raw["version"] != 1 or isinstance(raw["version"], bool):
@@ -222,7 +224,7 @@ class UpperStreamSender:
 
 def _parser():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="pkg://planetj/data/upper_stream.yaml")
+    parser.add_argument("--config", required=True, help="Explicit entry YAML, e.g. configs/entry/entry_upper_stream.yaml")
     parser.add_argument("--source", choices=("joystick", "sine", "scripted"), default="joystick")
     parser.add_argument("--duration-s", type=float, default=0.0)
     parser.add_argument("--check", action="store_true", help="validate config offline and exit")

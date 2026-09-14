@@ -16,34 +16,6 @@ class PlanetJConfigError(ValueError):
   pass
 
 
-def _merge_config(base: Mapping[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
-  """Recursively merge mappings; sequences and scalar values replace the base."""
-  merged = dict(base)
-  for key, value in override.items():
-    if key == "extends":
-      continue
-    previous = merged.get(key)
-    if isinstance(previous, Mapping) and isinstance(value, Mapping):
-      merged[key] = _merge_config(previous, value)
-    else:
-      merged[key] = value
-  return merged
-
-
-def _resolve_extends(source_path: Path, value: Any) -> Path:
-  if not isinstance(value, str) or not value.strip():
-    raise PlanetJConfigError("extends must be a non-empty path string")
-  candidate = Path(value).expanduser()
-  if candidate.is_absolute():
-    return candidate.resolve()
-  # Repository-root paths are the canonical config spelling. Relative paths
-  # remain useful for temporary configs and installed deployments.
-  from_cwd = candidate.resolve()
-  if from_cwd.is_file():
-    return from_cwd
-  return (source_path.parent / candidate).resolve()
-
-
 def _load_yaml_tree(source_path: Path, stack=()):
   from planet_config import load_config, ConfigError
   try:
@@ -306,8 +278,9 @@ def _signal_mapping(value: Any, path: str) -> SignalMapping:
 
 
 def load_config(path: str | Path) -> PlanetJConfig:
-  from planet_config import resolve_resource
-  source_path = resolve_resource(path)
+  if "://" in str(path):
+    raise PlanetJConfigError("configuration must be an explicit filesystem entry")
+  source_path = Path(path).expanduser().resolve()
   root = _load_yaml_tree(source_path)
   target = _mapping(root.get("target", {}), "target")
   publisher = _mapping(root.get("publisher", {}), "publisher")

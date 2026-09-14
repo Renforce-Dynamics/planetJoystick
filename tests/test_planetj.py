@@ -178,8 +178,11 @@ def test_signal_hold_latch():
 
 
 def test_planetj_cli_only_selects_config():
-  args = parse_args([])
-  assert args.config == "pkg://planetj/data/xbox.yaml"
+  with pytest.raises(SystemExit) as error:
+    parse_args([])
+  assert error.value.code == 2
+  args = parse_args(["--config", "configs/entry/entry_joystick.yaml"])
+  assert args.config == "configs/entry/entry_joystick.yaml"
   with pytest.raises(SystemExit):
     parse_args(["--stroke", "forehand"])
 

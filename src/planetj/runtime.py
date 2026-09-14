@@ -156,7 +156,7 @@ class LinuxJoystick:
 
 def _argument_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument("--config", default="pkg://planetj/data/xbox.yaml")
+  parser.add_argument("--config", required=True, help="Explicit entry YAML, e.g. configs/entry/entry_joystick.yaml")
   parser.add_argument("--check", action="store_true", help="Validate configuration without opening a joystick")
   parser.add_argument("--check-remote", action="store_true", help="Validate bindings against the configured operator endpoint and exit")
   parser.add_argument("--remote-timeout-s", type=float, default=1.0, help="Timeout for --check-remote")
