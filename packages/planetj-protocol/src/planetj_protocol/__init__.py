@@ -1,3 +1,3 @@
-"""Compatibility exports for the Cadence-owned PLNJ wire contract."""
+"""Compatibility exports for the shared PLNJ wire contract."""
 
-from cadence_protocol.operator import *
+from planet_protocol.operator import *

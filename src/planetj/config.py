@@ -45,7 +45,7 @@ def _resolve_extends(source_path: Path, value: Any) -> Path:
 
 
 def _load_yaml_tree(source_path: Path, stack=()):
-  from cadence_config import load_config, ConfigError
+  from planet_config import load_config, ConfigError
   try:
     result = load_config(source_path)
     _only_keys(result.data, {"version", "device", "target", "publisher", "inputs"}, "config")
@@ -306,7 +306,7 @@ def _signal_mapping(value: Any, path: str) -> SignalMapping:
 
 
 def load_config(path: str | Path) -> PlanetJConfig:
-  from cadence_config import resolve_resource
+  from planet_config import resolve_resource
   source_path = resolve_resource(path)
   root = _load_yaml_tree(source_path)
   target = _mapping(root.get("target", {}), "target")

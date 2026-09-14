@@ -1,6 +1,7 @@
-# Cadence lower locomotion with streamed upper joints
+# Upper-joint streaming
 
-This example combines an independent Cadence process with planetJoystick. Cadence
+This producer publishes joint targets using the shared Planet protocol. The optional
+integration below combines an independent Cadence process with planetJoystick. Cadence
 owns the robot state machine, lower policy, joint limits and PD commands.
 planetJoystick supplies operator requests and a separate stream of joint positions
 in radians. No rally package is required.
@@ -21,8 +22,8 @@ In the planetJoystick repository, verify the live catalog, then start operator
 input in a second terminal:
 
 ```bash
-.venv/bin/planetj --config pkg://planetj/data/cadence.yaml --check-remote
-.venv/bin/planetj --config pkg://planetj/data/cadence.yaml
+.venv/bin/planetj --config pkg://planetj/data/operator.yaml --check-remote
+.venv/bin/planetj --config pkg://planetj/data/operator.yaml
 ```
 
 Use RB+A for `fixedpos` (ID 2), then RB+X for `loco` (ID 3). The other base bindings
@@ -32,8 +33,8 @@ The default profile also preserves the emergency and reset signals from `xbox.ya
 Start the independent upper-joint producer in a third terminal:
 
 ```bash
-./scripts/upper-stream.sh -- --config examples/cadence_upper_stream/config.yaml --check
-./scripts/upper-stream.sh -- --config examples/cadence_upper_stream/config.yaml
+./scripts/upper-stream.sh -- --config examples/upper_stream/config.yaml --check
+./scripts/upper-stream.sh -- --config examples/upper_stream/config.yaml
 ```
 
 The default source opens `/dev/input/js0`. Its two sticks offset shoulder pitch
