@@ -51,12 +51,25 @@ inputs:
 目标角度单位为 rad。配置决定关节顺序、轴映射、角度范围和发送频率。
 默认采集实体手柄；断开后停止发送，目标保持与动作执行由接收端负责。
 
+## 按键播放序列
+
+同一个手柄进程可按键启动后台关节序列，状态请求、摇杆和急停持续正常发包：
+
+```bash
+./scripts/run.sh --config configs/entry/entry_sequences.yaml
+```
+
+这是两关节示例，接收端需配置对应的 `upper_stream` 状态。任务仓库在自己的
+entry 中指定状态 ID、按键和实际 NPZ；详见[序列配置](docs/sequences.md)。
+按一下启动，松键后继续；取消、切换状态或断开手柄会停止发送，接收端保持最新目标。
+
 配置只保存在根目录 `configs/`；安装包只包含代码。每次启动都显式选择 entry，缺失路径直接报错。
 
 ## 文档与开发
 
 - [配置和键位继承](docs/configuration.md)
 - [上肢发送示例](examples/upper_stream/README.md)
+- [按键启动后台序列](docs/sequences.md)
 
 依赖 [planetConfig](https://github.com/Renforce-Dynamics/planetConfig) 的配置和协议包，
 不依赖 Cadence 或 SDK。

@@ -5,11 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, TYPE_CHECKING
 
 import yaml
 
 from .protocol import AXIS_NAMES
+
+if TYPE_CHECKING:
+  from .sequences import SequenceConfig
 
 
 class PlanetJConfigError(ValueError):
@@ -20,8 +23,8 @@ def _load_yaml_tree(source_path: Path, stack=()):
   from planet_config import load_config, ConfigError
   try:
     result = load_config(source_path)
-    _only_keys(result.data, {"version", "device", "target", "publisher", "inputs"}, "config")
-    return result.data
+    _only_keys(result.data, {"version", "device", "target", "publisher", "inputs", "sequences"}, "config")
+    return result
   except ConfigError as error:
     raise PlanetJConfigError(str(error)) from error
 
@@ -206,6 +209,7 @@ class PlanetJConfig:
   publisher: PublisherConfig
   inputs: InputMapping
   source_path: Path
+  sequences: SequenceConfig | None = None
 
   def __post_init__(self) -> None:
     if self.version != 4:
@@ -281,7 +285,8 @@ def load_config(path: str | Path) -> PlanetJConfig:
   if "://" in str(path):
     raise PlanetJConfigError("configuration must be an explicit filesystem entry")
   source_path = Path(path).expanduser().resolve()
-  root = _load_yaml_tree(source_path)
+  resolved = _load_yaml_tree(source_path)
+  root = resolved.data
   target = _mapping(root.get("target", {}), "target")
   publisher = _mapping(root.get("publisher", {}), "publisher")
   inputs = _mapping(root.get("inputs", {}), "inputs")
@@ -293,7 +298,7 @@ def load_config(path: str | Path) -> PlanetJConfig:
   _only_keys(axes, set(AXIS_NAMES), "inputs.axes")
   _only_keys(dpad, {"x", "y"}, "inputs.dpad")
   try:
-    return PlanetJConfig(
+    config = PlanetJConfig(
       version=_integer(root.get("version", 4), "version"),
       device=str(root.get("device", "/dev/input/js0")),
       target=TargetConfig(host=str(target.get("host", "127.0.0.1")), port=int(target.get("port", 50560))),
@@ -306,11 +311,73 @@ def load_config(path: str | Path) -> PlanetJConfig:
         signals=tuple(_signal_mapping(item, f"inputs.signals[{index}]") for index, item in enumerate(_sequence(inputs.get("signals", ()), "inputs.signals"))),
       ),
       source_path=source_path,
+      sequences=_sequence_config(root.get("sequences"), resolved),
     )
+    if config.sequences is not None:
+      occupied = {(mapping.buttons, mapping.blocked_by) for mapping in (*config.inputs.requests, *config.inputs.signals)}
+      for motion in config.sequences.sequences:
+        if (motion.buttons, motion.blocked_by) in occupied:
+          raise PlanetJConfigError(f"sequence {motion.name!r} duplicates a state request or signal chord")
+    return config
   except (KeyError, TypeError, ValueError) as error:
     if isinstance(error, PlanetJConfigError):
       raise
     raise PlanetJConfigError(f"invalid PlanetJ config value: {error}") from error
+
+
+def _sequence_config(value, resolved):
+  """Optional producer configuration; paths belong to their declaring YAML."""
+  if value is None:
+    return None
+  from .sequences import SequenceConfig, SequenceSpec
+  import re
+  raw = _mapping(value, "sequences")
+  _only_keys(raw, {"target", "publisher", "cancel", "motions"}, "sequences")
+  target = _mapping(raw["target"], "sequences.target")
+  _only_keys(target, {"host", "port"}, "sequences.target")
+  host = target["host"]
+  if not isinstance(host, str) or not host.strip():
+    raise PlanetJConfigError("sequences.target.host must be a nonempty host")
+  publisher = _mapping(raw["publisher"], "sequences.publisher")
+  _only_keys(publisher, {"hz", "status_hz", "timeout_s"}, "sequences.publisher")
+  cancel = _mapping(raw["cancel"], "sequences.cancel")
+  _only_keys(cancel, {"buttons", "blocked_by"}, "sequences.cancel")
+  motions = _mapping(raw["motions"], "sequences.motions")
+  specs = []
+  for name, item in motions.items():
+    if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]*", name):
+      raise PlanetJConfigError("sequence names must be identifiers with optional hyphens")
+    if item is None:
+      continue
+    prefix = f"sequences.motions.{name}"
+    item = _mapping(item, prefix)
+    _only_keys(item, {"buttons", "blocked_by", "state", "trajectory", "entry_duration_s", "playback_speed"}, prefix)
+    state = _mapping(item["state"], prefix + ".state")
+    _only_keys(state, {"id", "key"}, prefix + ".state")
+    value = item["trajectory"]
+    if not isinstance(value, str) or not value.strip() or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", value):
+      raise PlanetJConfigError(prefix + ".trajectory requires an explicit file path")
+    declared = Path(resolved.origins.get(prefix + ".trajectory", str(resolved.source)))
+    path = Path(value).expanduser()
+    path = (path if path.is_absolute() else declared.parent / path).resolve()
+    if not path.is_file():
+      raise PlanetJConfigError(f"sequence trajectory does not exist: {path}")
+    specs.append(SequenceSpec(
+      name=name, path=path,
+      buttons=_button_tuple(item["buttons"], prefix + ".buttons"),
+      blocked_by=tuple(_integer(x, prefix + ".blocked_by") for x in _sequence(item.get("blocked_by", ()), prefix + ".blocked_by")),
+      required_state_id=_integer(state["id"], prefix + ".state.id"),
+      required_state_key=state["key"],
+      entry_duration_s=item.get("entry_duration_s", 2.0),
+      playback_speed=item.get("playback_speed", 1.0),
+    ))
+  return SequenceConfig(
+    target_host=host, target_port=_integer(target["port"], "sequences.target.port"),
+    sequences=tuple(specs), hz=publisher.get("hz", 60),
+    status_hz=publisher.get("status_hz", 10), timeout_s=publisher.get("timeout_s", .03),
+    cancel_buttons=_button_tuple(cancel["buttons"], "sequences.cancel.buttons"),
+    cancel_blocked_by=tuple(_integer(x, "sequences.cancel.blocked_by") for x in _sequence(cancel.get("blocked_by", ()), "sequences.cancel.blocked_by")),
+  )
 
 
 __all__ = [

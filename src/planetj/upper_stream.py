@@ -70,7 +70,6 @@ class UpperStreamConfig:
 
 
 def load_config(path) -> UpperStreamConfig:
-    import ipaddress
     if "://" in str(path):
         raise ValueError("configuration must be an explicit filesystem entry")
     source = Path(path).expanduser().resolve()
@@ -79,9 +78,8 @@ def load_config(path) -> UpperStreamConfig:
     if raw["version"] != 1 or isinstance(raw["version"], bool):
         raise ValueError("upper stream version must be 1")
     target = _mapping(raw["target"], {"host", "port"}, "target")
-    address = ipaddress.ip_address(target["host"])
-    if not isinstance(target["host"], str) or not address.is_loopback:
-        raise ValueError("target.host must be a loopback IP address")
+    if not isinstance(target["host"], str) or not target["host"].strip():
+        raise ValueError("target.host must be a nonempty hostname or IP address")
     port = target["port"]
     if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
         raise ValueError("target.port must be an integer in [1, 65535]")
@@ -127,7 +125,7 @@ def load_config(path) -> UpperStreamConfig:
     scripted = tuple(_vector(frame, n, "demo.scripted_frames") for frame in demo["scripted_frames"])
     if any(not lo <= q <= hi for frame in scripted for q, lo, hi in zip(frame, low, high)):
         raise ValueError("scripted target exceeds configured joint limits")
-    return UpperStreamConfig(str(address), port, raw["device"], hz, status_hz, timeout,
+    return UpperStreamConfig(target["host"], port, raw["device"], hz, status_hz, timeout,
                              names, initial, low, high, tuple(axes), sine_hz, scripted, source)
 
 
@@ -196,9 +194,13 @@ class UpperStreamSender:
             else:
                 if status["dimension"] != len(self.config.names):
                     raise ValueError(f"receiver has {status['dimension']} joints; configured {len(self.config.names)}")
+                if status.get("joint_names") is not None and tuple(status["joint_names"]) != self.config.names:
+                    raise ValueError("receiver joint order differs from configured joints.names")
                 activation = status["activation"]
                 if activation != self.activation:
                     self.activation, self.sequence = activation, 0
+                if status.get("sequence") is not None:
+                    self.sequence = max(self.sequence, status["sequence"] + 1)
                 self.available = activation is not None
         target = self.source.sample(now_s)
         if target is None or not self.available:

@@ -1,0 +1,17 @@
+# Example receiver must register upper_stream=5 for joint_a and joint_b.
+extends: operator.yaml
+inputs:
+  requests:
+    upper_stream: {buttons: [4, 2], blocked_by: [5], request_id: 5}
+sequences:
+  target: {host: 127.0.0.1, port: 15100}
+  publisher: {hz: 60, status_hz: 10, timeout_s: 0.03}
+  cancel: {buttons: [4, 1], blocked_by: [5]}
+  motions:
+    example:
+      buttons: [4, 3]
+      blocked_by: [5]
+      state: {id: 5, key: upper_stream}
+      trajectory: ../data/sequences/two_joint.npz
+      entry_duration_s: 2.0
+      playback_speed: 1.0

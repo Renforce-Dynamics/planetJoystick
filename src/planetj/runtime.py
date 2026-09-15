@@ -169,16 +169,18 @@ def parse_args(argv=None):
 
 
 def run(config: PlanetJConfig, duration_s: float = 0.0) -> int:
+  # Load trajectories before opening inputs; only the worker performs target I/O.
+  player = _sequence_player(config)
   publisher = config.publisher
   joystick = LinuxJoystick(config.device)
   transport = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  transport.connect((config.target.host, config.target.port))
   session_id = secrets.randbits(32)
   sequence = 0
   signal_sequence = 0
   previous_connected: bool | None = None
   previous_request: tuple[int, str] | None = None
   previous_direct_signals: set[int] = set()
+  previous_sequence_status = None
   latches = {
     mapping.signal_id: SignalHoldLatch(mapping.hold_after_release_ms / 1000.0)
     for mapping in config.inputs.signals if mapping.hold_after_release_ms > 0
@@ -190,6 +192,9 @@ def run(config: PlanetJConfig, duration_s: float = 0.0) -> int:
     f"target={config.target.host}:{config.target.port} protocol=PLNJ-v3"
   )
   try:
+    transport.connect((config.target.host, config.target.port))
+    if player is not None:
+      player.start()
     while duration_s <= 0 or time.monotonic() - started < duration_s:
       now = time.monotonic()
       joystick.poll(now)
@@ -211,6 +216,17 @@ def run(config: PlanetJConfig, duration_s: float = 0.0) -> int:
       command = map_operator_input(
         logical_connected, joystick.buttons, joystick.axes, config.inputs, held_signals,
       )
+      if player is not None:
+        player.poll_input(
+          joystick.connected, joystick.buttons,
+          request_id=command.request_id if command.flags & JoystickFlags.REQUEST_VALID else None,
+          signal_bits=command.signal_bits,
+        )
+        status = player.status
+        signature = (status["name"], status["phase"], status["last_error"])
+        if signature != previous_sequence_status:
+          print(f"[PlanetJ] sequence={status['name']} phase={status['phase']} error={status['last_error']}")
+          previous_sequence_status = signature
       if joystick.connected != previous_connected:
         state = "connected" if joystick.connected else "disconnected; controls=zero"
         print(f"[PlanetJ] joystick {state}")
@@ -239,8 +255,17 @@ def run(config: PlanetJConfig, duration_s: float = 0.0) -> int:
   except KeyboardInterrupt:
     return 0
   finally:
+    if player is not None:
+      player.close()
     joystick.close()
     transport.close()
+
+
+def _sequence_player(config):
+  if config.sequences is None:
+    return None
+  from .sequences import SequencePlayer
+  return SequencePlayer(config.sequences)
 
 
 def main(argv=None) -> int:
@@ -252,15 +277,29 @@ def main(argv=None) -> int:
     parser.error(str(error))
   if args.check_remote:
     try:
+      _validate_sequences(config)
       check_remote(config, timeout_s=args.remote_timeout_s)
     except (OSError, ValueError) as error:
       parser.error(f"remote binding check failed: {error}")
     print(f"PlanetJ remote bindings valid: {config.target.host}:{config.target.port}")
     return 0
   if args.check:
+    try:
+      _validate_sequences(config)
+    except (OSError, ValueError) as error:
+      parser.error(str(error))
     print(f"PlanetJ configuration valid: {config.source_path}")
     return 0
-  return run(config, args.duration_s)
+  try:
+    return run(config, args.duration_s)
+  except (OSError, ValueError) as error:
+    parser.error(str(error))
+
+
+def _validate_sequences(config):
+  player = _sequence_player(config)
+  if player is not None:
+    player.close()
 
 
 def check_remote(config: PlanetJConfig, *, timeout_s: float = 1.0):
@@ -273,6 +312,10 @@ def check_remote(config: PlanetJConfig, *, timeout_s: float = 1.0):
       + "; alternatively use a mapping keyed by state name"
     )
   with OperatorClient(config.target.host, config.target.port, timeout_s=timeout_s) as client:
-    return client.validate_bindings([
+    bindings = [
       (mapping.request_id, mapping.state_key) for mapping in config.inputs.requests
-    ])
+    ]
+    if config.sequences is not None:
+      bindings.extend((motion.required_state_id, motion.required_state_key)
+                      for motion in config.sequences.sequences)
+    return client.validate_bindings(bindings)

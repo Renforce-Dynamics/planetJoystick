@@ -9,6 +9,7 @@ Each process selects a root entry explicitly:
 | `configs/entry/entry_joystick.yaml` | `configs/xbox.yaml` | Axes, D-pad and safety signals; no state requests |
 | `configs/entry/entry_operator.yaml` | `configs/operator.yaml` | Adds passive (0), damping (1), fixedpos (2), loco (3) |
 | `configs/entry/entry_upper_stream.yaml` | `configs/upper_stream.yaml` | Independent continuous joint-target producer |
+| `configs/entry/entry_sequences.yaml` | `configs/sequences.yaml` | PLNJ plus button-triggered background joint sequences |
 
 The operator profile inherits the root device profile. Task repositories maintain their own bindings, such as `planet-rally/configs/operators/rally.yaml`. Wheels contain no configuration or data files. A wheel installation uses an explicitly supplied configuration tree.
 
@@ -22,13 +23,20 @@ Legacy request lists are supported unchanged and replace the inherited list. Leg
 
 ## Source installation
 
+The optional top-level `sequences` mapping configures button-triggered joint
+sequences in the normal joystick process. See [the sequence contract](sequences.md).
+`--check` loads and validates all referenced clips without opening sockets;
+`--check-remote` additionally includes every sequence's required state binding
+in the operator catalog check. The worker verifies the joint-target endpoint's
+state ownership, joint names and activation before sending a clip.
+
 `external/planetConfig` pins the repository whose root package is `planet-config` and whose `packages/planet-protocol` package is the pure-standard-library `planet-protocol`. Bootstrap installs these packages, the compatibility `planetj-protocol` and `planetj`. The recursive source graph contains only Planet components; the receiver runtime is an independent service.
 
 ## Upper-joint source
 
 `planetj-upper` uses its own version-1 configuration and a separate joint-target port. It defaults to physical joystick input; `--source sine` and `--source scripted` explicitly select demonstrations. The configuration includes complete joint order, reference positions, limits, named axis mappings, frequency and connection timeout. Its producer has no state requests or PD ownership. See the [example and schema](../examples/upper_stream/README.md).
 
-An upper target carries `activation`, `sequence` and `q_des` in radians. Activation changes reset the producer sequence; reconnects to the same activation preserve it. Disconnect or network failure pauses publication without emitting a fallback. The receiver retains its latest accepted target without a TTL. Joint-target receipts acknowledge reception only.
+An upper target carries `activation`, `sequence` and `q_des` in radians. Activation changes reset the continuous producer sequence; reconnects to the same activation preserve it and respect the receiver's advertised sequence. Disconnect or network failure pauses publication without emitting a fallback. The receiver retains its latest accepted target without a TTL. Joint-target receipts acknowledge reception only. Explicit hostnames/IPs support a controller on another machine; defaults remain loopback. When the receiver advertises joint names, the continuous axis producer checks that its configured order matches.
 
 ## Layering rules
 
