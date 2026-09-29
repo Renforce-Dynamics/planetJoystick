@@ -137,9 +137,8 @@ def test_upper_default_is_fourteen_joints_with_bounded_axis_offsets():
     assert scripted.sample(100) == config.scripted_frames[-1]
 
 
-def test_upper_source_uses_physical_connection_and_stops_on_disconnect():
+def test_upper_source_uses_physical_connection_and_stops_on_disconnect(monkeypatch):
     config = load_upper_config(str(ROOT / "configs/entry/entry_upper_stream.yaml"))
-    source = JoystickSource(config)
 
     class Device:
         connected = True
@@ -150,7 +149,8 @@ def test_upper_source_uses_physical_connection_and_stops_on_disconnect():
         def close(self):
             self.connected = False
 
-    source.device = Device()
+    monkeypatch.setattr("planetj.upper_stream.create_joystick", lambda selector: Device())
+    source = JoystickSource(config)
     assert source.sample(0) != config.initial_position
     source.device.connected = False
     assert source.sample(1) is None

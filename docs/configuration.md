@@ -13,7 +13,7 @@ Each process selects a root entry explicitly:
 
 The operator profile inherits the root device profile. Task repositories maintain their own bindings, such as `planet-rally/configs/operators/rally.yaml`. Wheels contain no configuration or data files. A wheel installation uses an explicitly supplied configuration tree.
 
-Use `planetj --config FILE --check` for offline validation. `device` is a Linux device path, and `target` is a network address; neither is rewritten relative to YAML. Request IDs are interpreted by the consuming application.
+Use `planetj --config FILE --check` for offline validation. `device` accepts `auto`, `sdl:auto`, `sdl:INDEX`, or an explicit Linux/FIFO path; `target` is a network address. Neither is rewritten relative to YAML. The default selects Linux js0 or a mapped SDL gamepad on macOS. Request IDs are interpreted by the consuming application. See [device selection and local monitoring](gamepads.md).
 
 `inputs.requests` accepts a mapping keyed by state name. Each value contains `buttons`, `request_id`, optional `blocked_by`, optional `state_key`, and optional `debug_name`. The key supplies `state_key` by default, and the default debug label is its uppercase spelling. Mappings merge recursively, so a task can change one chord without copying IDs or the other bindings. Set an entry to `null` to disable it. Duplicate request IDs remain invalid.
 

@@ -10,6 +10,7 @@ from typing import Any, Mapping, Sequence, TYPE_CHECKING
 import yaml
 
 from .protocol import AXIS_NAMES
+from .devices import validate_device
 
 if TYPE_CHECKING:
   from .sequences import SequenceConfig
@@ -212,6 +213,10 @@ class PlanetJConfig:
   sequences: SequenceConfig | None = None
 
   def __post_init__(self) -> None:
+    try:
+      validate_device(self.device)
+    except ValueError as error:
+      raise PlanetJConfigError(str(error)) from error
     if self.version != 4:
       raise PlanetJConfigError(f"unsupported PlanetJ config version {self.version}; expected 4")
     if not self.device:
@@ -300,7 +305,7 @@ def load_config(path: str | Path) -> PlanetJConfig:
   try:
     config = PlanetJConfig(
       version=_integer(root.get("version", 4), "version"),
-      device=str(root.get("device", "/dev/input/js0")),
+      device=root.get("device", "auto"),
       target=TargetConfig(host=str(target.get("host", "127.0.0.1")), port=int(target.get("port", 50560))),
       publisher=PublisherConfig(hz=float(publisher.get("hz", 50.0)), ttl_ms=int(publisher.get("ttl_ms", 100))),
       inputs=InputMapping(

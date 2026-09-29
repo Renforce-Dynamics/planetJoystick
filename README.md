@@ -1,10 +1,10 @@
 # planetJoystick
 
-读取 Linux 手柄，发送 operator 请求、摇杆输入和连续上肢关节目标。
+读取 Linux / macOS 手柄，发送 operator 请求、摇杆输入和连续上肢关节目标。
 
 ## 安装与启动
 
-需要 Linux、Python 3.10+、`uv`。
+需要 Linux 或 macOS、Python 3.10+、`uv`。macOS 安装时自动包含 pygame-ce / SDL。
 
 ```bash
 git clone --recurse-submodules git@github.com:Renforce-Dynamics/planetJoystick.git
@@ -14,7 +14,8 @@ cd planetJoystick
 ./scripts/run.sh --config configs/entry/entry_operator.yaml
 ```
 
-默认读取 `/dev/input/js0`，发送到 `127.0.0.1:50560`；持续运行，Ctrl+C 退出。
+默认 `device: auto`：Linux 读取 `/dev/input/js0`，macOS 选择第一个 SDL 已映射手柄。
+默认发送到 `127.0.0.1:50560`；持续运行，Ctrl+C 退出。
 `operator.yaml` 包含 passive、damping、fixedpos、loco 请求。
 只发送摇杆和安全信号时，选择 `configs/entry/entry_joystick.yaml`。
 
@@ -24,7 +25,7 @@ cd planetJoystick
 
 ```yaml
 extends: entry_operator.yaml
-device: /dev/input/js0
+device: auto
 target:
   host: 192.168.1.100
   port: 50560
@@ -41,6 +42,22 @@ inputs:
 按实际部署修改地址。请求按名称逐项继承，`null` 禁用继承项；
 状态 ID 和名称由接收端解释。接收端启动后，可用
 `.venv/bin/planetj --config configs/entry/entry_operator_site.yaml --check-remote` 检查配对。
+
+## macOS 手柄与本地检查
+
+先在系统中连接 USB 或蓝牙手柄，然后使用相同入口：
+
+```bash
+./scripts/run.sh --config configs/entry/entry_operator.yaml --list-devices
+./scripts/run.sh --config configs/entry/entry_operator.yaml --monitor
+./scripts/run.sh --config configs/entry/entry_operator.yaml
+```
+
+前两条只列设备或显示输入，不向机器人发包；monitor 用 Ctrl+C 退出。
+多手柄时把 entry 的 `device` 设置为列表中的 `sdl:0`、`sdl:1` 等。
+明确写出的 Linux/FIFO 路径仍按原路径读取；旧现场配置迁移到 Mac 时可改为 `device: auto`。
+SDL 输入统一成原 Xbox 编号，LB/RB、Back/Menu、十字键和扳机无需改任务映射。
+详见 [设备选择、键位和验证范围](docs/gamepads.md)。
 
 ## 连续上肢目标
 
@@ -68,6 +85,7 @@ entry 中指定状态 ID、按键和实际 NPZ；详见[序列配置](docs/seque
 ## 文档与开发
 
 - [配置和键位继承](docs/configuration.md)
+- [Linux / macOS 手柄与本地检查](docs/gamepads.md)
 - [上肢发送示例](examples/upper_stream/README.md)
 - [按键启动后台序列](docs/sequences.md)
 

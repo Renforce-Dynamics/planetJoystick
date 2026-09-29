@@ -1,23 +1,17 @@
-"""Read a Linux joystick and publish generic latest-only PLNJ commands."""
+"""Read a local gamepad and publish generic latest-only PLNJ commands."""
 
 from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
-import os
+import math
 import secrets
 import socket
-import struct
 import time
 
 from .config import InputMapping, PlanetJConfig, PlanetJConfigError, SignalMapping, load_config
 from .protocol import JoystickCommandPacket, JoystickFlags, encode_joystick_command
-
-
-_JS_EVENT = struct.Struct("IhBB")
-_JS_EVENT_BUTTON = 0x01
-_JS_EVENT_AXIS = 0x02
-_JS_EVENT_INIT = 0x80
+from .devices import LinuxJoystick, create_joystick, list_devices
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,60 +99,14 @@ def map_operator_input(
   )
 
 
-class LinuxJoystick:
-  def __init__(self, path: str) -> None:
-    self.path = str(path)
-    self.fd: int | None = None
-    self.buttons = [False] * 11
-    self.axes = [0.0] * 8
-    self._last_open_attempt = 0.0
-
-  @property
-  def connected(self) -> bool:
-    return self.fd is not None
-
-  def close(self) -> None:
-    if self.fd is not None:
-      os.close(self.fd)
-      self.fd = None
-    self.buttons = [False] * len(self.buttons)
-    self.axes = [0.0] * len(self.axes)
-
-  def poll(self, now_s: float) -> None:
-    if self.fd is None:
-      if now_s - self._last_open_attempt < 1.0:
-        return
-      self._last_open_attempt = now_s
-      try:
-        self.fd = os.open(self.path, os.O_RDONLY | os.O_NONBLOCK)
-      except OSError:
-        return
-    try:
-      while True:
-        data = os.read(self.fd, _JS_EVENT.size)
-        if len(data) != _JS_EVENT.size:
-          raise OSError("short joystick event")
-        _, value, event_type, number = _JS_EVENT.unpack(data)
-        event_type &= ~_JS_EVENT_INIT
-        if event_type == _JS_EVENT_AXIS:
-          if number >= len(self.axes):
-            self.axes.extend([0.0] * (number + 1 - len(self.axes)))
-          self.axes[number] = max(-1.0, min(1.0, float(value) / 32767.0))
-        elif event_type == _JS_EVENT_BUTTON:
-          if number >= len(self.buttons):
-            self.buttons.extend([False] * (number + 1 - len(self.buttons)))
-          self.buttons[number] = bool(value)
-    except BlockingIOError:
-      return
-    except OSError:
-      self.close()
-
-
 def _argument_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("--config", required=True, help="Explicit entry YAML, e.g. configs/entry/entry_joystick.yaml")
-  parser.add_argument("--check", action="store_true", help="Validate configuration without opening a joystick")
-  parser.add_argument("--check-remote", action="store_true", help="Validate bindings against the configured operator endpoint and exit")
+  mode = parser.add_mutually_exclusive_group()
+  mode.add_argument("--check", action="store_true", help="Validate configuration without opening a joystick")
+  mode.add_argument("--check-remote", action="store_true", help="Validate bindings against the configured operator endpoint and exit")
+  mode.add_argument("--list-devices", action="store_true", help="List local joysticks without sending packets")
+  mode.add_argument("--monitor", action="store_true", help="Display local buttons, axes and mapped commands without sending packets")
   parser.add_argument("--remote-timeout-s", type=float, default=1.0, help="Timeout for --check-remote")
   parser.add_argument("--duration-s", type=float, default=0.0, help="Stop after this duration; 0 runs until interrupted")
   return parser
@@ -169,10 +117,12 @@ def parse_args(argv=None):
 
 
 def run(config: PlanetJConfig, duration_s: float = 0.0) -> int:
+  if not math.isfinite(duration_s) or duration_s < 0:
+    raise ValueError("duration_s must be finite and nonnegative")
   # Load trajectories before opening inputs; only the worker performs target I/O.
   player = _sequence_player(config)
   publisher = config.publisher
-  joystick = LinuxJoystick(config.device)
+  joystick = create_joystick(config.device)
   transport = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
   session_id = secrets.randbits(32)
   sequence = 0
@@ -188,7 +138,7 @@ def run(config: PlanetJConfig, duration_s: float = 0.0) -> int:
   next_tick = time.monotonic()
   started = next_tick
   print(
-    f"[PlanetJ] config={config.source_path} device={config.device} "
+    f"[PlanetJ] config={config.source_path} device={joystick.path} "
     f"target={config.target.host}:{config.target.port} protocol=PLNJ-v3"
   )
   try:
@@ -229,7 +179,7 @@ def run(config: PlanetJConfig, duration_s: float = 0.0) -> int:
           previous_sequence_status = signature
       if joystick.connected != previous_connected:
         state = "connected" if joystick.connected else "disconnected; controls=zero"
-        print(f"[PlanetJ] joystick {state}")
+        print(f"[PlanetJ] joystick {state} device={getattr(joystick, 'description', config.device)}")
         previous_connected = joystick.connected
       request = None if command.request_debug_name is None else (command.request_id, command.request_debug_name)
       if request != previous_request:
@@ -259,6 +209,37 @@ def run(config: PlanetJConfig, duration_s: float = 0.0) -> int:
       player.close()
     joystick.close()
     transport.close()
+
+
+def monitor(config: PlanetJConfig, duration_s: float = 0.0) -> int:
+  """Local input inspection; never construct a network or sequence publisher."""
+  if not math.isfinite(duration_s) or duration_s < 0:
+    raise ValueError("duration_s must be finite and nonnegative")
+  joystick = create_joystick(config.device)
+  started = next_print = time.monotonic()
+  previous = None
+  print(f"[PlanetJ monitor] device={joystick.path}; local input only, no packets sent", flush=True)
+  try:
+    while duration_s <= 0 or time.monotonic() - started < duration_s:
+      now = time.monotonic()
+      joystick.poll(now)
+      command = map_operator_input(joystick.connected, joystick.buttons, joystick.axes, config.inputs)
+      buttons = tuple(i for i, pressed in enumerate(joystick.buttons) if pressed)
+      signature = (joystick.connected, buttons, tuple(round(x, 3) for x in command.axes),
+                   command.dpad_x, command.dpad_y, command.request_debug_name, command.signal_bits)
+      if signature != previous and now >= next_print:
+        request = f"{command.request_id}:{command.request_debug_name}" if command.request_debug_name else "none"
+        print(f"[PlanetJ monitor] connected={joystick.connected} buttons={list(buttons)} "
+              f"axes={signature[2]} dpad=({command.dpad_x},{command.dpad_y}) "
+              f"request={request} signals=0x{command.signal_bits:x} "
+              f"device={getattr(joystick, 'description', config.device)}", flush=True)
+        previous, next_print = signature, now + .1
+      time.sleep(1.0 / config.publisher.hz)
+  except KeyboardInterrupt:
+    return 0
+  finally:
+    joystick.close()
+  return 0
 
 
 def _sequence_player(config):
@@ -291,7 +272,14 @@ def main(argv=None) -> int:
     print(f"PlanetJ configuration valid: {config.source_path}")
     return 0
   try:
-    return run(config, args.duration_s)
+    if args.list_devices:
+      devices = list_devices(config.device)
+      for device in devices:
+        print(f"{device['device']}: {device['name']} mapped={device['mapped']}")
+      if not devices:
+        print("No joysticks found; connect or pair a controller and retry.")
+      return 0
+    return monitor(config, args.duration_s) if args.monitor else run(config, args.duration_s)
   except (OSError, ValueError) as error:
     parser.error(str(error))
 

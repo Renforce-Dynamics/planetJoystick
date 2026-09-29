@@ -1,5 +1,6 @@
 version: 1
-device: /dev/input/js0
+# auto: Linux /dev/input/js0; macOS SDL gamepad. Explicit FIFO paths still work.
+device: auto
 target: {host: 127.0.0.1, port: 15100}
 publisher: {hz: 30, status_hz: 5, timeout_s: 0.1}
 joints:

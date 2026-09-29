@@ -16,7 +16,8 @@ import time
 
 from planet_config import load_config as load_composed_config
 
-from .runtime import LinuxJoystick, _analog
+from .runtime import _analog
+from .devices import create_joystick, validate_device
 
 
 def _mapping(value, keys, name):
@@ -83,8 +84,7 @@ def load_config(path) -> UpperStreamConfig:
     port = target["port"]
     if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
         raise ValueError("target.port must be an integer in [1, 65535]")
-    if not isinstance(raw["device"], str) or not raw["device"].strip():
-        raise ValueError("device must be a nonempty path")
+    validate_device(raw["device"])
     publisher = _mapping(raw["publisher"], {"hz", "status_hz", "timeout_s"}, "publisher")
     hz, status_hz, timeout = (_number(publisher[key], f"publisher.{key}") for key in ("hz", "status_hz", "timeout_s"))
     if min(hz, status_hz, timeout) <= 0 or status_hz > hz:
@@ -140,7 +140,7 @@ def axis_target(config, raw_axes):
 class JoystickSource:
     def __init__(self, config):
         self.config = config
-        self.device = LinuxJoystick(config.device)
+        self.device = create_joystick(config.device)
 
     def sample(self, now_s):
         self.device.poll(now_s)

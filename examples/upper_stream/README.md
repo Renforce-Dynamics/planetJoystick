@@ -37,7 +37,7 @@ Start the independent upper-joint producer in a third terminal:
 ./scripts/upper-stream.sh --config examples/upper_stream/config.yaml
 ```
 
-The default source opens `/dev/input/js0`. Its two sticks offset shoulder pitch
+The default source uses `device: auto` (Linux `/dev/input/js0`, macOS SDL). Its two sticks offset shoulder pitch
 and elbow positions around the configured initial posture. Each target contains
 all 14 A3 arm joints in the declared order; unmapped joints retain their configured
 position. Connected sticks at neutral request the configured posture. Position

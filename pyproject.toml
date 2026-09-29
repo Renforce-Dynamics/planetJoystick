@@ -10,8 +10,11 @@ license = {file = "LICENSE"}
 name = "planetj"
 version = "0.1.0"
 requires-python = ">=3.10"
-description = "Configurable Linux joystick input"
-dependencies = ["planet-config>=0.1,<0.2", "planet-protocol>=0.1,<0.2", "planetj-protocol>=0.1,<0.2", "numpy>=1.24"]
+description = "Configurable Linux and macOS gamepad input"
+dependencies = ["planet-config>=0.1,<0.2", "planet-protocol>=0.1,<0.2", "planetj-protocol>=0.1,<0.2", "numpy>=1.24", "pygame-ce>=2.5.6,<3; sys_platform == 'darwin'"]
+
+[project.optional-dependencies]
+sdl = ["pygame-ce>=2.5.6,<3"]
 
 [project.scripts]
 planetj = "planetj.runtime:main"

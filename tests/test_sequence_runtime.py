@@ -35,6 +35,7 @@ def test_plnj_and_emergency_keep_running_while_sequence_status_blocks(monkeypatc
     class Device:
         connected = True
         def __init__(self, path):
+            self.path = path
             self.start = time.monotonic()
             self.buttons, self.axes = [False] * 11, [0.] * 8
         def poll(self, now):
@@ -65,7 +66,7 @@ def test_plnj_and_emergency_keep_running_while_sequence_status_blocks(monkeypatc
         def close(self):
             pass
 
-    monkeypatch.setattr(runtime, "LinuxJoystick", Device)
+    monkeypatch.setattr(runtime, "create_joystick", Device)
     monkeypatch.setattr(sequences, "JointTargetClient", SlowClient)
     config = load_config(ROOT / "configs/entry/entry_sequences.yaml")
     config = replace(config, target=replace(config.target, host=sock.getsockname()[0], port=sock.getsockname()[1]))
